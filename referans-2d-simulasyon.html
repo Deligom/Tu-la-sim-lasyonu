@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tuğla Hattı Simülasyonu — Pres, Kesici, Hazırlama</title>
+<style>
+:root{--bg:#f6f4f0;--fg:#22201c;--muted:#6b665e;--card:#fff;--line:#e3ded5;--accent:#2f6fd6;--ok:#2e8b57;--warn:#b07a0c;--bad:#c8402f;
+ --belt:#5b5f66;--belt2:#6d7279;--table:#ddd7cb;--cut:#cfc8bb;--die:#3a3633;--wire:#7d766b;--txt:#4d4840;--steel:#8b97a8;--rack:#9a8f7f}
+@media (prefers-color-scheme:dark){:root{--bg:#17181a;--fg:#ecebe8;--muted:#a19d96;--card:#222326;--line:#34363a;--belt:#44484e;--belt2:#575c63;--table:#3b3934;--cut:#2f2e2b;--die:#0b0b0c;--wire:#9a958c;--txt:#b9b4ab;--steel:#7d8a9c;--rack:#8a8172}}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:12px 12px 40px;max-width:1100px;margin:0 auto}
+h1{font-size:18px;margin:0 0 4px}
+h2{font-size:14px;margin:0 0 8px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+.status{border-radius:10px;padding:8px 12px;font-weight:600;margin-bottom:10px;border:1px solid var(--line);background:var(--card)}
+.status.ok{color:var(--ok);border-color:var(--ok)}
+.status.warn{color:var(--warn);border-color:var(--warn)}
+.status.bad{color:var(--bad);border-color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 10px}
+.card .k{font-size:11.5px;color:var(--muted)}
+.card .v{font-size:17px;font-weight:650;font-variant-numeric:tabular-nums}
+.card .s{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.wrapc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px;display:flex;justify-content:center;margin-bottom:10px;overflow:hidden}
+canvas{display:block;touch-action:pan-y}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+button,select{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:7px 12px;cursor:pointer}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+select{width:100%}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:4px 18px}
+.row{display:grid;grid-template-columns:1fr auto;gap:0 10px;margin-bottom:6px}
+.row label{font-size:13px}
+.row output{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.row input{grid-column:1/-1;width:100%}
+.note{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.grp{font-size:12px;font-weight:600;color:var(--muted);grid-column:1/-1;margin:8px 0 2px;text-transform:uppercase;letter-spacing:.04em}
+table.calc{width:100%;border-collapse:collapse;font-size:13px}
+table.calc td{padding:5px 0;border-bottom:1px solid var(--line);vertical-align:top}
+table.calc td:last-child{text-align:right;font-variant-numeric:tabular-nums;padding-left:10px;white-space:nowrap}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin:-4px 0 10px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+ol.steps{margin:0;padding-left:18px;font-size:13px}
+ol.steps li{margin-bottom:4px}
+</style>
+</head>
+<body>
+<h1>Tuğla hattı: pres → bölgeli birikme → ön hazırlık → A/B toplama → fırıncı yükleyici → ranza</h1>
+<p class="sub">Üstten görünüm. Kesiciden çıkan tuğlalar şerit başına bölgelere ayrılmış bantlarda birbirine değmeden bekliyor. Dozaj bölgesi tuğlaları ön hazırlığa 2 cm aralıkla tek tek bırakıyor. 3×4 blok pop-up bantlarla sağa (A) ya da sola (B) aktarılıyor. Dolan 6×4 kat tampon banttan fırıncı tipi plakaya geçiyor, plaka ranzaya girip bandını geri sararak katı bırakıyor. Alttaki yan görünüm yükleyiciyi ve ranza kaldırıcıyı gösteriyor.</p>
+
+<div id="status" class="status">Isınıyor…</div>
+<div class="panel" style="padding:8px 12px">
+  <div id="laneDiag" class="note" style="margin:0;font-variant-numeric:tabular-nums"></div>
+  <div id="changed" class="note"></div>
+  <div class="bar" style="margin:6px 0 0">
+    <button id="bDefaults">Varsayılan ayarlara dön</button>
+    <button id="bDiag">Teşhis bilgisini kopyala</button>
+  </div>
+  <textarea id="diagOut" style="display:none;width:100%;height:120px;font:11px ui-monospace,monospace;margin-top:6px" readonly></textarea>
+</div>
+
+<div class="stats">
+  <div class="card"><div class="k">Süre</div><div class="v" id="sTime">0:00</div><div class="s">simülasyon zamanı</div></div>
+  <div class="card"><div class="k">Üretim (tuğla/dk)</div><div class="v" id="sProd">–</div><div class="s" id="sProdS"></div></div>
+  <div class="card"><div class="k">Tuğla teması / bant kayması</div><div class="v" id="sCont">0 / 0</div><div class="s" id="sContS"></div></div>
+  <div class="card"><div class="k">Birikme kuyruğu (Ş1 · Ş2 · Ş3)</div><div class="v" id="sQueue">0 · 0 · 0</div><div class="s" id="sQueueS"></div></div>
+  <div class="card"><div class="k">Blok çevrimi (3×4)</div><div class="v" id="sBlock">–</div><div class="s" id="sBlockS"></div></div>
+  <div class="card"><div class="k">Hazır kat (A + B)</div><div class="v" id="sSets">0</div><div class="s" id="sSetsS"></div></div>
+  <div class="card"><div class="k">İstasyon A</div><div class="v" id="sA">–</div><div class="s" id="sAS"></div></div>
+  <div class="card"><div class="k">İstasyon B</div><div class="v" id="sB">–</div><div class="s" id="sBS"></div></div>
+  <div class="card"><div class="k">Dolan ranza</div><div class="v" id="sRack">0</div><div class="s" id="sRackS"></div></div>
+  <div class="card"><div class="k">Taşıyıcılar</div><div class="v" id="sVeh">–</div><div class="s" id="sVehS"></div></div>
+  <div class="card"><div class="k">Artık / kesim (Ş1 · Ş2 · Ş3)</div><div class="v" id="sScrap">–</div><div class="s" id="sScrapS"></div></div>
+  <div class="card"><div class="k">Taşan tuğla</div><div class="v" id="sLost">0</div><div class="s" id="sLostS"></div></div>
+</div>
+
+<div id="wrap" class="wrapc"><canvas id="cv"></canvas></div>
+<div class="legend">
+  <span><i style="background:#c8814f"></i>Şerit 1</span>
+  <span><i style="background:#a46f48"></i>Şerit 2 (orta)</span>
+  <span><i style="background:#b98f5f"></i>Şerit 3</span>
+  <span><i style="background:#2e8b57"></i>Bölge çalışıyor / kapak açık</span>
+  <span><i style="background:#c8402f"></i>Bölge durdu / kapak kapalı</span>
+  <span><i style="background:rgba(47,111,214,.7)"></i>Pop-up transfer</span>
+  <span><i style="background:#8b97a8"></i>Fırıncı plaka</span>
+</div>
+
+<div class="bar">
+  <button id="bPlay" class="primary">Durdur</button>
+  <button id="bReset">Sıfırla</button>
+  <button id="bFF">10 dk ileri sar</button>
+  <span style="flex:1"></span>
+  <span class="note" style="margin:0">Hız:</span>
+  <button data-m="0.25" class="sp">¼×</button>
+  <button data-m="1" class="sp on">1×</button>
+  <button data-m="3" class="sp">3×</button>
+  <button data-m="10" class="sp">10×</button>
+</div>
+
+<h2>Yan görünüm: fırıncı yükleyici ve ranza kaldırıcı</h2>
+<div id="wrap2" class="wrapc"><canvas id="cv2"></canvas></div>
+
+<div class="panel">
+  <h2>Birikme bandı</h2>
+  <select id="acc">
+    <option value="zpa">Bölgeli bant (her bölge ayrı motor, tuğlalar birbirine değmez)</option>
+    <option value="single">Tek parça bant (bant tuğlanın altından kayar, kuyrukta tuğlalar çarpışır)</option>
+  </select>
+  <p class="note" id="accNote"></p>
+</div>
+
+<div class="panel">
+  <h2>Sırasıyla ne oluyor?</h2>
+  <ol class="steps">
+    <li><b>Hızlandırma bölgesi</b> hiç durmaz, çünkü kesiciden itilerek gelen tuğlayı karşılar. Tuğlalar burada sütundan ayrılır.</li>
+    <li><b>Bölgeli birikme:</b> her şeritte tuğla boyundan uzun (30 cm) ayrı bant bölgeleri var. Önündeki bölge doluysa bölge, tuğlası sonundaki sensöre gelince durur. Tuğlalar arasında hep en az birkaç cm boşluk kalır.</li>
+    <li><b>Dozaj bölgesi</b> tuğlayı uçta bekletir. Ön hazırlık bandı o şeritte bir önceki tuğlayı 21 cm ilerletip durunca dozaj bandıyla eş hızda (senkron) bir sonraki tuğlayı alır. Böylece 4 tuğla aralarında 2 cm boşlukla, durdurucuya çarpmadan sıraya girer.</li>
+    <li>Kamera bir şeritte 4'ü saymışsa o şeridin dozajı durur ve <b>kapağı</b> kapanır. Kapak çizgisindeki sensör tuğla görürse kapanmaz.</li>
+    <li>3 şerit de hazır olunca <b>pop-up</b> bantlar kalkar ve bloğu, motor yönüne göre sağdaki A ya da soldaki B tablasına taşır. Yarım kalmış tabla önce tamamlanır.</li>
+    <li>Dolan 6×4 kat tablanın boyuna pop-up'ıyla <b>tampon banda</b>, oradan da boşta bekleyen <b>fırıncı plakaya</b> geçer.</li>
+    <li>Ranza kaldırıcı, sıradaki katın çıtasını plaka hizasına getirir (en alt kat önce, ranza boşken en yukarıda). Plaka 97 cm ileri girer, sonra <b>geri çekilirken bandını aynı hızda ileri sarar</b>. Tuğlanın altı kaymaz, kat çıtaların üstünde kalır.</li>
+    <li>5 kat dolunca ranza değişir. Taşıyıcılar dolu ranzayı götürüp boş ranza getirir.</li>
+  </ol>
+</div>
+
+<div class="panel">
+  <h2>Parametreler</h2>
+  <div class="grid2" id="sliders"></div>
+  <p class="note">Bölge sayısını, tampon kapasitesini, kesim sayısını veya araç sayısını değiştirmek simülasyonu sıfırlar.</p>
+</div>
+
+<div class="panel">
+  <h2>Hesap (teorik)</h2>
+  <table class="calc" id="calc"></table>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const P={rate:[85,80,83],N:8,L:19,W:13.5,gap:3,acc:'zpa',nZones:5,ZL:30,
+  vb:150,va:150,vz:200,gateT:0.3,liftT:0.2,tSpeed:120,exitSpeed:100,Bcap:1,
+  vPlate:50,liftSpeed:20,swapT:6,inCap:3,outCap:3,nVeh:3,tripT:60,scrapDelay:1.0,pushV:120,badRack:0};
+const LANEC=['#c8814f','#a46f48','#b98f5f'];
+let G,S;
+
+function geom(){
+  const L=P.L,W=P.W,PITCH=W+P.gap,BW=3*PITCH-P.gap;
+  const TD1=BW+9,TD2=TD1+3*PITCH,Y0=TD2+17;
+  const X_CUT=30,X_BELT=X_CUT+P.N*L,R_END=X_BELT+60;
+  const zones=[{s:X_BELT,e:R_END,k:'R'}];
+  for(let j=0;j<P.nZones;j++) zones.push({s:R_END+j*P.ZL,e:R_END+(j+1)*P.ZL,k:'A'});
+  const GATE=R_END+(P.nZones+1)*P.ZL;
+  zones.push({s:GATE-P.ZL,e:GATE,k:'D'});
+  const G2=GATE+1,E=GATE+2,ZEND=E+4*L+3*2;  // 4 sıra, 2 cm aralık
+  const BUF0=ZEND+3,BL=P.Bcap*92,PL0=BUF0+BL,PLEN=88,DX=97,RK0=PL0+DX;
+  const laneY=i=>Y0+i*PITCH;
+  const band=s=>s===0?[Y0+TD1-3,Y0+TD2+BW+3]:[Y0-TD2-3,Y0-TD1+BW+3];
+  return {L,W,PITCH,BW,TD1,TD2,Y0,X_CUT,X_BELT,R_END,zones,GATE,G2,E,ZEND,BUF0,BL,PL0,PLEN,DX,RK0,laneY,band,
+    CLEAR:BW+1,Xmin:-44,Xmax:RK0+118,Ymin:0,Ymax:Y0+TD2+BW+17,H:150};
+}
+const vcol=i=>P.rate[i]*P.L/60;
+const rowBack=k=>G.ZEND-P.L-k*(P.L+2); // k=0 en öndeki sıra
+
+function mkSide(){return {groups:[],plate:{phase:'ready',px:0,level:null,belt:0},
+  rack:{levels:0,lift:120,target:120,phase:'ok',timer:0,bricks:[]},
+  empty:P.inCap,full:0,incoming:0,racks:0,rejected:0,starve:0,rackWait:0,loadBusy:0,loaded:0};}
+function reset(){
+  G=geom();
+  S={t:0,f:[G.X_CUT,G.X_CUT,G.X_CUT],bricks:[],cuts:0,produced:0,scrap:[0,0,0],lost:0,contacts:0,slips:0,trips:0,
+    lanes:[0,1,2].map(()=>({meter:true,gate:'open',gt:0,run:[],trip:false})),
+    zone:{phase:'fill',timer:0,block:null},blocks:[],
+    tables:[0,1].map(()=>({halves:[null,null],next:0,exiting:null})),
+    sides:[mkSide(),mkSide()],pref:0,
+    veh:Array.from({length:P.nVeh},()=>({busy:false,timer:0,to:0,bring:false,busyT:0})),tripsV:0,
+    anomaly:null,rng:12345,scrapPushed:0,midScrap:0,levels:0,wFill:0,wTable:0,blockTimes:[],lastBlock:null,q:[0,0,0],qmax:[0,0,0],cam:[0,0,0],lastCut:-99,blockDir:[0,0]};
+  layout();layout2();
+}
+
+function tableAccepts(s){const T=S.tables[s];return !T.exiting&&T.next<2&&!T.halves[T.next];}
+function chooseSide(){
+  for(const s of [0,1]) if(tableAccepts(s)&&S.tables[s].next===1) return s;
+  const c=[0,1].filter(tableAccepts); if(!c.length) return -1;
+  if(c.length===2){const ld=s=>S.sides[s].groups.length+(S.sides[s].plate.phase!=='ready'?1:0);
+    c.sort((a,b)=>ld(a)-ld(b)||(a===S.pref?-1:1));}
+  return c[0];
+}
+
+function step(dt){
+  const t=S.t+dt; S.t=t; const L=P.L;
+  // 1) Sütunlar ve kesim
+  for(let i=0;i<3;i++) S.f[i]+=vcol(i)*dt;
+  for(const b of S.bricks){
+    if(b.st==='push') b.x+=vcol(b.lane)*dt;
+    else if(b.st==='scrap'){
+      const c=b.x+b.len/2;
+      if(b.kick){b.off=(b.off||0)+b.kick*P.pushV*dt;}
+      else if(c>=G.X_BELT){b.x+=P.vb*dt;
+        if(c>=G.X_BELT+12){ if(b.lane===1){if(!b.mid){b.mid=true;S.midScrap++;}} else {b.kick=b.lane===0?-1:1;} }}
+      else b.x+=vcol(b.lane)*dt;
+    }
+  }
+  if(Math.min(...S.f)>=G.X_BELT){
+    for(let i=0;i<3;i++){
+      const ex=S.f[i]-G.X_BELT;
+      if(ex>0.3) S.bricks.push({lane:i,x:G.X_BELT,len:ex,st:'scrap',t0:t});
+      S.scrap[i]+=Math.max(0,ex);
+      for(let k=0;k<P.N;k++) S.bricks.push({lane:i,x:G.X_CUT+k*L,len:L,st:'push'});
+      S.f[i]=G.X_CUT;
+    }
+    S.cuts++; S.produced+=3*P.N; S.lastCut=t;
+  }
+  for(const b of S.bricks) if(b.st==='push'&&b.x+L/2>=G.X_BELT) b.st='belt';
+
+  // 2) Şeritler: bölgeler, dozaj, ön hazırlık indeksleme
+  const Zs=G.zones,nz=Zs.length;
+  for(let i=0;i<3;i++){
+    const ln=S.lanes[i];
+    const lb=S.bricks.filter(b=>b.lane===i&&b.st==='belt').sort((a,b)=>b.x-a.x);
+    const prepSide=lb.filter(b=>b.x+L>G.GATE-0.3);          // dozaj ucunda bekleyen + ön hazırlıktakiler
+    const behind=lb.filter(b=>b.x+L<=G.GATE-0.3);
+    const released=lb.filter(b=>b.x+L>G.GATE+0.5).length;
+    ln.meter=released<4;
+    const indexed=lb.filter(b=>b.x>=G.E-0.01).length;
+    // Ön hazırlık senkron indeksleme
+    const crossing=prepSide.find(b=>b.x<G.E-0.01);
+    if(crossing){
+      const waiting=crossing.x+L<=G.GATE+0.3;
+      const allowed=!waiting||(ln.meter&&ln.gate==='open'&&S.zone.phase==='fill');
+      if(allowed){
+        const sh=Math.min(P.vz*dt,G.E-crossing.x),cx=crossing.x;
+        prepSide.forEach(b=>{if(b.x>=cx-0.01)b.x+=sh;}); ln.prepRun=sh>0; ln.relBrick=crossing;
+      }else{ln.prepRun=false;ln.relBrick=null;}
+    }else{ln.prepRun=false;ln.relBrick=null;}
+    // Bölge durumları (aşağı akıştan yukarıya)
+    const run=new Array(nz).fill(true),acc=new Array(nz+1).fill(true),cap=new Array(nz).fill(Infinity);
+    acc[nz]=false; // dozaj ucu: geçiş yalnızca senkron indekslemeyle
+    const all=lb;
+    for(let z=nz-1;z>=0;z--){
+      const zn=Zs[z];
+      const inZ=all.filter(b=>{const c=b.x+L/2;return c>=zn.s&&c<zn.e&&!(ln.prepRun&&b===ln.relBrick);});
+      const atEnd=inZ.find(b=>b.x+L>=zn.e-0.3);
+      let nextAcc=acc[z+1];
+      if(zn.k==='D'){ cap[z]=G.GATE; run[z]=!atEnd; }
+      else if(P.acc==='zpa'){
+        run[z]=zn.k==='R'?true:!(atEnd&&!nextAcc);
+        if(!nextAcc) cap[z]=zn.e;
+      }else{ run[z]=true; }
+      const entryBlocked=inZ.some(b=>b.x<zn.s+6);
+      acc[z]=(run[z]||inZ.length===0)&&!entryBlocked;
+    }
+    ln.run=run;
+    // Hareket (arkadakiler)
+    let limit=crossing?crossing.x:(prepSide.length?Math.min(...prepSide.map(b=>b.x)):Infinity);
+    limit=Math.min(limit,G.GATE); let src='gate',q=0;
+    if(prepSide.length&&Math.min(...prepSide.map(b=>b.x))<G.GATE) src='brick';
+    for(const b of behind){
+      const c=b.x+L/2; let z=-1; for(let k=0;k<nz;k++) if(c>=Zs[k].s&&c<Zs[k].e){z=k;break;}
+      const v=z<0?P.vb:(run[z]?(Zs[z].k==='R'?P.vb:P.va):0);
+      let nx=b.x+v*dt;
+      if(z>=0&&nx+L>cap[z]){nx=Math.max(b.x,cap[z]-L);if(Zs[z].k==='R'&&v>0&&!b.slip){b.slip=true;S.slips++;}}
+      const maxX=limit-L;
+      if(b.x>maxX+0.05){b.lost=true;S.lost++;continue;}
+      let touching=false;
+      if(nx>=maxX-0.001){nx=maxX;if(src==='brick')touching=true;}
+      if(touching&&!b.touch){S.contacts++;}
+      b.touch=touching;
+      if(touching&&v>0&&!b.slip){b.slip=true;S.slips++;}
+      if(!touching&&nx>b.x+1e-6) b.slip=false;
+      b.stopped=nx<=b.x+1e-6; if(b.stopped) q++;
+      b.x=nx; limit=b.x; src='brick';
+    }
+    S.q[i]=q; if(q>S.qmax[i]) S.qmax[i]=q;
+    S.cam[i]=released;
+    // Kapak
+    if(ln.gate==='open'&&!ln.meter&&indexed===4&&S.zone.phase==='fill'){
+      const span=lb.some(b=>b.x<G.G2&&b.x+L>G.G2);
+      if(span){if(!ln.trip){S.trips++;ln.trip=true;}}
+      else{ln.gate='closing';ln.gt=P.gateT;ln.trip=false;}
+    }else if(ln.gate==='closing'){ln.gt-=dt;if(ln.gt<=0)ln.gate='closed';}
+    else if(ln.gate==='opening'){ln.gt-=dt;if(ln.gate==='opening'&&ln.gt<=0)ln.gate='open';}
+    // teşhis: bırakma izni olduğu halde tuğla ilerlemiyor mu?
+    const w=lb.find(b=>b.x+L>=G.GATE-0.3&&b.x+L<=G.GATE+0.3);
+    const okRel=w&&ln.meter&&ln.gate==='open'&&S.zone.phase==='fill'&&!lb.some(b=>b.x+L>G.GATE+0.3&&b.x<G.E-0.01);
+    ln.stuckT=okRel?(ln.stuckT||0)+dt:0;
+    if(ln.stuckT>1.5&&!S.anomaly) S.anomaly={lane:i,t:+t.toFixed(2)};
+  }
+
+  // 3) Ön hazırlık bloğu ve pop-up yönü
+  const Z=S.zone;
+  if(Z.phase==='fill'){
+    const ready=S.lanes.every((ln,i)=>ln.gate==='closed'&&S.bricks.filter(b=>b.lane===i&&b.st==='belt'&&b.x>=G.E-0.01).length===4);
+    const side=ready?chooseSide():-1;
+    if(!ready) S.wFill+=dt; else if(side<0) S.wTable+=dt;
+    if(ready&&side>=0){
+      if(S.lastBlock!==null){S.blockTimes.push(t-S.lastBlock);if(S.blockTimes.length>40)S.blockTimes.shift();}
+      S.lastBlock=t;
+      const bricks=S.bricks.filter(b=>b.st==='belt'&&b.x>=G.E-0.01);
+      bricks.forEach(b=>{b.st='block';b.cy0=G.laneY(b.lane)+G.W/2;b.cy=b.cy0;});
+      const T=S.tables[side],half=T.next++;
+      const sgn=side===0?1:-1;
+      Z.block={bricks,off:0,target:sgn*(half===0?G.TD2:G.TD1),half,side,sgn};
+      Z.phase='lift';Z.timer=P.liftT;S.blockDir[side]++;
+    }
+  }else if(Z.phase==='lift'){Z.timer-=dt;if(Z.timer<=0){Z.phase='move';S.blocks.push(Z.block);}}
+  else if(Z.phase==='move'){if(Math.abs(Z.block.off)>=G.CLEAR){Z.phase='lower';Z.timer=P.liftT;}}
+  else if(Z.phase==='lower'){Z.timer-=dt;if(Z.timer<=0){Z.phase='fill';Z.block=null;S.lanes.forEach(ln=>{ln.gate='opening';ln.gt=P.gateT;});}}
+  for(const blk of S.blocks){
+    blk.off=blk.sgn>0?Math.min(blk.target,blk.off+P.tSpeed*dt):Math.max(blk.target,blk.off-P.tSpeed*dt);
+    blk.bricks.forEach(b=>b.cy=b.cy0+blk.off);
+    if(blk.off===blk.target){
+      blk.done=true; blk.bricks.forEach(b=>b.st='table');
+      const T=S.tables[blk.side]; T.halves[blk.half]=blk.bricks;
+      if(T.halves[0]&&T.halves[1]){
+        const lv=[...T.halves[0],...T.halves[1]]; lv.forEach(b=>b.st='grp');
+        T.exiting=lv; T.halves=[null,null]; S.levels++;
+        S.sides[blk.side].groups.push({bricks:lv}); S.pref=1-blk.side;
+      }
+    }
+  }
+  S.blocks=S.blocks.filter(b=>!b.done);
+  for(const T of S.tables) if(T.exiting&&T.exiting.every(b=>b.x>=G.ZEND+1)){T.exiting=null;T.next=0;}
+
+  // 4) Tampon bant, fırıncı plaka, ranza kaldırıcı
+  S.sides.forEach((sd,s)=>{
+    const pl=sd.plate,rk=sd.rack;
+    let lim=pl.phase==='ready'?G.PL0+G.PLEN-2:G.PL0-1;
+    for(const g of sd.groups){
+      let fr=-1e9,bk=1e9; for(const b of g.bricks){fr=Math.max(fr,b.x+L);bk=Math.min(bk,b.x);}
+      const dx=Math.max(0,Math.min(P.exitSpeed*dt,lim-fr));
+      g.bricks.forEach(b=>b.x+=dx); g.back=bk+dx; g.front=fr+dx; lim=bk+dx-8;
+    }
+    if(pl.phase==='ready'&&sd.groups.length&&sd.groups[0].front>=G.PL0+G.PLEN-2.01){
+      const g=sd.groups.shift(); pl.level=g.bricks; g.bricks.forEach(b=>b.st='plate'); pl.phase='loaded';
+    }
+    const rackReady=rk.phase==='ok'&&rk.lift===rk.target&&rk.levels<5;
+    if(pl.phase==='ready'){ if(rk.levels<5&&!sd.groups.some(g=>g.back>=G.PL0-90)) sd.starve+=dt; }
+    else if(pl.phase==='loaded'){ if(rackReady) pl.phase='insert'; else sd.rackWait+=dt; }
+    else if(pl.phase==='insert'){
+      sd.loadBusy+=dt; const d=Math.min(P.vPlate*dt,G.DX-pl.px); pl.px+=d; pl.level.forEach(b=>b.x+=d);
+      if(pl.px>=G.DX){pl.phase='retract';}
+    }else if(pl.phase==='retract'){
+      sd.loadBusy+=dt; const d=Math.min(P.vPlate*dt,pl.px); pl.px-=d; pl.belt+=d;
+      if(pl.px<=0){
+        rk.bricks.forEach(b=>b.dead=true);
+        pl.level.forEach(b=>b.st='rack'); rk.bricks=pl.level; pl.level=null; pl.phase='ready';
+        rk.levels++; sd.loaded++;
+        if(rk.levels<5) rk.target=(4-rk.levels)*30; else rk.phase='needSwap';
+      }
+    }
+    if(rk.phase==='ok'){ if(rk.lift<rk.target) rk.lift=Math.min(rk.target,rk.lift+P.liftSpeed*dt); else if(rk.lift>rk.target) rk.lift=Math.max(rk.target,rk.lift-P.liftSpeed*dt); }
+    else if(rk.phase==='needSwap'){ if(sd.empty>0&&sd.full<P.outCap){rk.phase='swap';rk.timer=P.swapT;} else sd.rackWait+=dt; }
+    else if(rk.phase==='swap'){
+      rk.timer-=dt;
+      if(rk.timer<=P.swapT/2&&rk.bricks.length){rk.bricks.forEach(b=>b.dead=true);rk.bricks=[];}
+      if(rk.timer<=0){
+        sd.empty--;sd.full++; if(!rk.reject) sd.racks++;
+        rk.levels=0;rk.lift=0;rk.target=120;
+        S.rng=(S.rng*16807)%2147483647; const bad=S.rng/2147483647<P.badRack/100;
+        rk.reject=bad; if(bad){sd.rejected++;rk.phase='needSwap';} else rk.phase='ok';
+      }
+    }
+  });
+
+  // 5) Taşıyıcılar
+  for(const v of S.veh){
+    if(v.busy){v.busyT+=dt;v.timer-=dt;if(v.timer<=0){v.busy=false;const sd=S.sides[v.to];if(v.bring){sd.incoming--;sd.empty++;}}}
+    if(!v.busy){
+      let best=-1,bs=0;
+      S.sides.forEach((sd,i)=>{const sc=sd.full*2+(P.inCap-sd.empty-sd.incoming);if(sc>bs){bs=sc;best=i;}});
+      if(best>=0){const sd=S.sides[best];v.busy=true;v.timer=P.tripT;v.to=best;S.tripsV++;
+        if(sd.full>0)sd.full--; v.bring=sd.empty+sd.incoming<P.inCap; if(v.bring)sd.incoming++;}
+    }
+  }
+  for(const b of S.bricks) if(b.st==='scrap'&&b.kick&&Math.abs(b.off)>G.W+10&&!b.gone){b.gone=true;S.scrapPushed++;}
+  S.bricks=S.bricks.filter(b=>!(b.lost||b.dead||(b.st==='scrap'&&(b.gone||(b.mid&&b.x>G.X_BELT+40)||t-b.t0>8))));
+}
+
+// ---------- Üstten görünüm ----------
+const cv=$('cv'),ctx=cv.getContext('2d');
+let LAY={s:1,vert:false,w:0,h:0},C={};
+function readColors(){const cs=getComputedStyle(document.documentElement);
+  ['belt','belt2','table','cut','die','wire','txt','steel','rack'].forEach(k=>C[k]=cs.getPropertyValue('--'+k).trim());}
+function layout(){
+  const cw=$('wrap').clientWidth-12,maxH=Math.max(260,innerHeight*0.62),maxHv=Math.max(320,innerHeight*0.85),GUT=112;
+  const XS=G.Xmax-G.Xmin,YS=G.Ymax-G.Ymin;
+  const sH=Math.min(cw/XS,maxH/YS),sV=Math.min((cw-GUT)/YS,maxHv/XS);
+  const vert=sV>sH*1.15,s=vert?sV:sH;
+  const w=Math.floor(vert?YS*s+GUT:XS*s),h=Math.floor((vert?XS:YS)*s),dpr=devicePixelRatio||1;
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.width=w+'px';cv.style.height=h+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);LAY={s,vert,w,h};readColors();
+}
+function T(x,y){const s=LAY.s;return LAY.vert?[(y-G.Ymin)*s,(x-G.Xmin)*s]:[(x-G.Xmin)*s,(y-G.Ymin)*s];}
+function R(x,y,w,h){const[a,b]=T(x,y),s=LAY.s;return LAY.vert?[a,b,h*s,w*s]:[a,b,w*s,h*s];}
+function fillR(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(...R(x,y,w,h));}
+function strokeR(x,y,w,h,c,lw,dash){ctx.strokeStyle=c;ctx.lineWidth=lw;ctx.setLineDash(dash||[]);ctx.strokeRect(...R(x,y,w,h));ctx.setLineDash([]);}
+function line(x1,y1,x2,y2,c,lw){ctx.strokeStyle=c;ctx.lineWidth=lw;ctx.beginPath();ctx.moveTo(...T(x1,y1));ctx.lineTo(...T(x2,y2));ctx.stroke();}
+function label(x,y,txt,c,size,bold){const[a,b]=T(x,y);ctx.fillStyle=c;ctx.font=`${bold?'600 ':''}${size||11}px system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,a,b);}
+function zlabel(x,txt,ls,yy){
+  if(!LAY.vert){label(x,yy,txt,C.txt,ls,true);return;}
+  const sy=(x-G.Xmin)*LAY.s,sx=(G.Ymax-G.Ymin)*LAY.s+6;
+  ctx.fillStyle=C.txt;ctx.font=`600 ${ls}px system-ui,sans-serif`;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(txt,sx,sy);
+}
+function rrect(x,y,w,h,c){const[a,b,ww,hh]=R(x,y,w,h);const r=Math.min(3,ww/4,hh/4);ctx.fillStyle=c;ctx.beginPath();
+  if(ctx.roundRect)ctx.roundRect(a,b,ww,hh,r);else ctx.rect(a,b,ww,hh);ctx.fill();}
+function stripesX(x0,x1,y0,y1,off,step,c){for(let x=x0+((off%step)+step)%step;x<x1;x+=step)line(x,y0,x,y1,c||'rgba(255,255,255,.12)',1);}
+function drawBrick(b){
+  const cy=(b.st==='belt'||b.st==='push'||b.st==='scrap')?G.laneY(b.lane)+G.W/2+(b.off||0):b.cy;
+  let col=LANEC[b.lane];
+  if(b.st==='scrap'){col=b.mid?'#ff3b30':'rgba(200,64,47,.9)';}
+  rrect(b.x+0.4,cy-G.W/2+0.4,Math.max(0.5,b.len-0.8),G.W-0.8,col);
+  if(b.touch){strokeR(b.x,cy-G.W/2,b.len,G.W,'#ff3b30',2);}
+  const px=LAY.s*G.W;
+  if(b.st!=='scrap'&&px>=11) label(b.x+b.len/2,cy,String(b.lane+1),'rgba(255,255,255,.85)',Math.min(12,px*0.55));
+}
+function draw(){
+  const s=LAY.s,t=S.t,L=P.L;
+  ctx.clearRect(0,0,LAY.w,LAY.h);
+  const y0=G.laneY(0)-3,y1=G.laneY(2)+G.W+3,ls=Math.max(9,Math.min(12,s*7)),top=7,bot=G.Ymax-7,lt=y0-19;
+  // kalıp + kesici
+  fillR(-30,y0-4,30,y1-y0+8,C.die); zlabel(-15,'Kalıp',ls,lt);
+  fillR(G.X_CUT,y0,G.X_BELT-G.X_CUT,y1-y0,C.cut);
+  const flash=t-S.lastCut<0.12;
+  for(let k=0;k<=P.N;k++){const x=G.X_CUT+k*L;line(x,y0-2,x,y1+2,flash?'#f2b632':C.wire,flash?2:1);}
+  zlabel((G.X_CUT+G.X_BELT)/2,`Kesici (${P.N}'li)`,ls,lt);
+  {const px=G.X_BELT+12;
+   const k0=S.bricks.some(b=>b.st==='scrap'&&b.kick===-1),k2=S.bricks.some(b=>b.st==='scrap'&&b.kick===1);
+   fillR(px-5,G.laneY(0)-14,10,8,'#8a6d2f'); if(k0) fillR(px-1.5,G.laneY(0)-6,3,8,'#f2b632');
+   fillR(px-5,G.laneY(2)+G.W+6,10,8,'#8a6d2f'); if(k2) fillR(px-1.5,G.laneY(2)+G.W-2,3,8,'#f2b632');}
+  // bölgeler
+  G.zones.forEach((zn,z)=>{
+    for(let i=0;i<3;i++){
+      const r=S.lanes[i].run[z]!==false;
+      fillR(zn.s,G.laneY(i)-1.5,zn.e-zn.s,G.W+3,zn.k==='D'?(r?'#3d7a5a':'#7a3b33'):C.belt);
+      if(zn.k!=='R'||true){fillR(zn.s+1,G.laneY(i)-1.5,3,G.W+3,r?'#2e8b57':'#c8402f');}
+      if(r) stripesX(zn.s+4,zn.e,G.laneY(i)-1.5,G.laneY(i)+G.W+1.5,t*(zn.k==='R'?P.vb:P.va),20);
+    }
+    line(zn.s,y0,zn.s,y1,'rgba(0,0,0,.35)',1);
+  });
+  fillR(G.X_BELT,y0,6,y1-y0,'rgba(200,64,47,.3)');
+  zlabel((G.X_BELT+G.R_END)/2,'Hızlandırma',ls,lt);
+  zlabel((G.R_END+G.GATE-P.ZL)/2,LAY.vert?(P.acc==='zpa'?`Birikme (${P.nZones} bölge)`:'Birikme (tek bant)'):(P.acc==='zpa'?`Bölgeli birikme (${P.nZones}×${P.ZL} cm)`:'Tek parça birikme bandı'),ls,lt);
+  zlabel(G.GATE-P.ZL/2,'Dozaj',ls,LAY.vert?lt:y1+7);
+  // A/B tablaları ve pop-up alanı
+  for(const sd of [0,1]){
+    const [a,b]=G.band(sd);
+    fillR(G.E-1,a,G.ZEND-G.E+2,b-a,C.table);
+    for(let k=0;k<4;k++)for(let j=0;j<6;j++){
+      const yy=sd===0?G.Y0+(j<3?G.TD1+j*G.PITCH:G.TD2+(j-3)*G.PITCH):G.Y0-(j<3?G.TD2:G.TD1)+(j%3)*G.PITCH;
+      strokeR(rowBack(k),yy,L,G.W,C.wire,1,[3,3]);
+    }
+  }
+  const [bA0]=G.band(0),[,bB1]=G.band(1);
+  fillR(G.E-1,bB1,G.ZEND-G.E+2,bA0-bB1,C.belt2);
+  const lifted=S.zone.phase==='lift'||S.zone.phase==='move';
+  const blk=S.zone.block||S.blocks[S.blocks.length-1];
+  for(let k=0;k<4;k++){const rb=rowBack(k);
+    for(let i=0;i<3;i++) for(const ro of [6.2,12.8]) fillR(rb+ro-1.2,G.laneY(i)-1,2.4,G.W+2,'rgba(160,156,148,.75)');
+    for(const bo of [3,9.5,16]){const x=rb+bo;
+      line(x,lifted&&blk&&blk.sgn<0?G.band(1)[0]:bB1,x,lifted&&blk&&blk.sgn>0?G.band(0)[1]:bA0,lifted?'rgba(47,111,214,.95)':'rgba(47,111,214,.45)',lifted?2.4:1.4);}}
+  for(const sd of [0,1]){const [a,b]=G.band(sd);
+    for(let k=0;k<4;k++){const rb=rowBack(k);for(const bo of [3,9.5,16]) line(rb+bo,a,rb+bo,b,lifted?'rgba(47,111,214,.95)':'rgba(47,111,214,.45)',lifted?2.4:1.4);}}
+  if(lifted&&blk) label((G.E+G.ZEND)/2,G.Y0+G.BW/2,blk.sgn>0?'→ A':'→ B','#fff',ls+2,true);
+  fillR(G.GATE,y0,G.E-G.GATE,y1-y0,C.belt);
+  strokeR(G.GATE-2,y0-2,G.ZEND-G.GATE+4,y1-y0+4,'rgba(242,182,50,.9)',1.5,[4,3]);
+  label(G.ZEND+6,y0-4,'📷',C.txt,Math.max(10,ls));
+  if(LAY.vert) zlabel((G.E+G.ZEND)/2,'Ön hazırlık, toplama',ls,0);
+  else{label((G.E+G.ZEND)/2,G.Y0-6,"Ön hazırlık (4'lü)",C.txt,ls,true);
+    label((G.E+G.ZEND)/2,bot,'A toplama',C.txt,ls,true);label((G.E+G.ZEND)/2,top,'B toplama',C.txt,ls,true);}
+  // tampon, plaka, ranza (iki taraf)
+  for(const sd of [0,1]){
+    const [a,b]=G.band(sd),side=S.sides[sd],pl=side.plate,rk=side.rack,cyb=(a+b)/2;
+    if(G.BL>0){fillR(G.BUF0,a,G.BL,b-a,C.belt);stripesX(G.BUF0,G.PL0,a,b,t*P.exitSpeed,25);}
+    fillR(G.ZEND,a,3,b-a,C.belt);
+    // ranza (üstten)
+    const ry0=cyb-60;
+    if(rk.phase==='swap'){
+      const pr=1-rk.timer/P.swapT,off=(sd===0?1:-1)*(pr<0.5?pr*2:(1-pr)*2)*130;
+      strokeR(G.RK0-1,ry0+off,92,120,C.rack,2,[4,3]);
+      label(G.RK0+45,cyb,'ranza değişiyor',C.txt,ls,true);
+    }else{
+      for(let yy=ry0+4;yy<ry0+118;yy+=7.5) line(G.RK0,yy,G.RK0+90,yy,'rgba(154,143,127,.45)',1);
+      strokeR(G.RK0-1,ry0,92,120,C.rack,2);
+      [[0,0],[86,0],[0,116],[86,116]].forEach(([dx,dy])=>fillR(G.RK0-1+dx,ry0+dy,6,4,C.rack));
+    }
+    // yan raylar (sabit çelik profil) + plakanın yan kolları ve makara çiftleri
+    fillR(G.PL0-52,a-4,G.RK0-2-(G.PL0-52),3,'#5F5E5A'); fillR(G.PL0-52,b+1,G.RK0-2-(G.PL0-52),3,'#5F5E5A');
+    {const tb=G.PL0+pl.px; line(tb-50,a-0.5,tb,a-0.5,'#185FA5',2); line(tb-50,b+0.5,tb,b+0.5,'#185FA5',2);
+     for(const rx of [tb-5,tb-45]){fillR(rx-2,a-5,4,5,'#0C447C');fillR(rx-2,b,4,5,'#0C447C');}
+     fillR(tb-14,a+3,10,8,'#0C447C');}
+    // plaka
+    const px0=G.PL0+pl.px;
+    fillR(px0,a+1,G.PLEN,b-a-2,C.steel);
+    stripesX(px0,px0+G.PLEN,a+1,b-1,-pl.belt,12,'rgba(0,0,0,.25)');
+    strokeR(px0,a+1,G.PLEN,b-a-2,'rgba(0,0,0,.35)',1);
+    label(px0+G.PLEN/2,cyb,sd===0?'A':'B','rgba(255,255,255,.9)',ls+6,true);
+    const lbl=(sd===0?'A':'B')+` · ranza ${rk.levels}/5`;
+    if(LAY.vert){ if(sd===0) zlabel(G.RK0+45,'Ranza A / B',ls,0); }
+    else label(G.RK0+45,sd===0?bot:top,lbl,C.txt,ls,true);
+    if(!LAY.vert){
+      label(G.PL0+G.PLEN/2,sd===0?bot:top,(sd===0?'A':'B')+' fırıncı plaka',C.txt,ls,true);
+      if(G.BL>0) label(G.BUF0+G.BL/2,sd===0?bot:top,(sd===0?'A':'B')+' tampon',C.txt,ls,true);
+    }
+  }
+  if(LAY.vert){ if(G.BL>0) zlabel(G.BUF0+G.BL/2,'Tampon A / B',ls,0); zlabel(G.PL0+G.PLEN/2,'Fırıncı plaka A / B',ls,0); }
+  // sütunlar
+  for(let i=0;i<3;i++) rrect(0,G.laneY(i),S.f[i],G.W,LANEC[i]);
+  // tuğlalar
+  for(const b of S.bricks) if(b.st!=='rack') drawBrick(b);
+  for(const b of S.bricks) if(b.st==='rack') drawBrick(b);
+  // kapaklar + sensör
+  for(let i=0;i<3;i++){
+    const ln=S.lanes[i],yy=G.laneY(i)-1.5;
+    const col=ln.gate==='open'?'#2e8b57':ln.gate==='closed'?'#c8402f':'#f2b632';
+    fillR(G.G2-0.8,yy,1.6,G.W+3,col);
+  }
+}
+
+// ---------- Yan görünüm ----------
+const cv2=$('cv2'),c2=cv2.getContext('2d');let W2=0,H2=0,SV={};
+function layout2(){
+  if(!G) return;
+  W2=Math.max(300,$('wrap2').clientWidth-12);
+  const xs0=G.BUF0-6,xs1=G.RK0+100,zs=285,stack=W2<640;
+  const pw=stack?W2:(W2-12)/2, s=Math.min((pw-8)/(xs1-xs0),stack?1.2:1.4), ph=zs*s+46;
+  H2=stack?ph*2+8:ph;
+  const d=devicePixelRatio||1;cv2.width=W2*d;cv2.height=H2*d;cv2.style.width=W2+'px';cv2.style.height=H2+'px';c2.setTransform(d,0,0,d,0,0);
+  SV={xs0,xs1,s,pw,ph,stack};
+}
+function draw2(){
+  if(!SV.s) return;
+  c2.clearRect(0,0,W2,H2);
+  const {xs0,s,pw,ph,stack}=SV,L=P.L,fs=11;
+  S.sides.forEach((sd,k)=>{
+    const ox=stack?0:k*(pw+12),oy=stack?k*(ph+8):0,gy=oy+ph-30;
+    const X=x=>ox+4+(x-xs0)*s,Zf=z=>gy-z*s;
+    const pl=sd.plate,rk=sd.rack,H=G.H;
+    c2.fillStyle=C.txt;c2.font=`600 ${fs+1}px system-ui,sans-serif`;c2.textAlign='left';c2.textBaseline='top';
+    const ph2={ready:'boş, kat bekliyor',loaded:'katı aldı, ranzayı bekliyor',insert:'ranzaya giriyor',retract:'geri çekiliyor, bant ileri sarıyor'}[pl.phase];
+    c2.fillText(`${k?'B':'A'} · plaka: ${ph2}`,ox+4,oy+2);
+    c2.font=`${fs}px system-ui,sans-serif`;
+    const rph=rk.reject?'uyumsuz çıta, ranza geri gönderiliyor':{ok:rk.lift===rk.target?'hazır':'kaldırıcı hareket ediyor',needSwap:'dolu, boş ranza bekliyor',swap:'ranza değişiyor'}[rk.phase];
+    c2.fillText(`ranza ${rk.levels}/5 · kaldırıcı ${Math.round(rk.lift)} cm · ${rph}`,ox+4,oy+17);
+    // zemin
+    c2.fillStyle='rgba(125,118,107,.35)';c2.fillRect(ox,gy,pw,3);
+    // tampon bant ve plaka ayakları
+    c2.fillStyle=C.belt;
+    if(G.BL>0) c2.fillRect(X(G.BUF0),Zf(H),G.BL*s,4*s);
+    c2.fillStyle=C.wire;
+    if(G.BL>0){c2.fillRect(X(G.BUF0+4),Zf(H-6),3,(H-6)*s);c2.fillRect(X(G.PL0-22),Zf(H-6),3,(H-6)*s);}
+    // yükleyici şasesi: iki dikme + plakanın iki yanındaki sabit çelik ray (yan görünümde arkada)
+    const railZ=H-2;
+    c2.fillStyle='#5F5E5A';
+    c2.fillRect(X(G.PL0-50),Zf(railZ-1.5),4,(railZ-1.5)*s);c2.fillRect(X(G.RK0-8),Zf(railZ-1.5),4,(railZ-1.5)*s);
+    c2.globalAlpha=0.8;c2.fillRect(X(G.PL0-52),Zf(railZ+1.5),(G.RK0-2-(G.PL0-52))*s,3*s);c2.globalAlpha=1;
+    // tampondaki katlar (yan kesit: tek sütun)
+    for(const g of sd.groups){const xs=[...new Set(g.bricks.filter(b=>b.lane===0).map(b=>Math.round(b.x)))];
+      xs.forEach(x=>{c2.fillStyle=LANEC[0];c2.fillRect(X(x)+0.5,Zf(H+19),L*s-1,19*s);});}
+    // ranza kaldırıcı
+    const base=rk.lift;
+    c2.fillStyle='rgba(47,111,214,.35)';c2.fillRect(X(G.RK0+30),Zf(base),30*s,base*s);
+    c2.fillStyle=C.wire;c2.fillRect(X(G.RK0-6),Zf(base)-2,102*s,4);
+    // ranza
+    const swapping=rk.phase==='swap';
+    c2.globalAlpha=swapping?0.35:1;
+    c2.fillStyle=C.rack;
+    c2.fillRect(X(G.RK0),Zf(base+155),3,155*s);c2.fillRect(X(G.RK0+90)-3,Zf(base+155),3,155*s);
+    for(let j=0;j<5;j++){
+      const zz=base+25+30*j;
+      c2.fillStyle=C.rack;c2.fillRect(X(G.RK0),Zf(zz),90*s,3);
+      if(j<rk.levels&&!(swapping&&rk.timer<P.swapT/2)){
+        for(let r=0;r<4;r++){c2.fillStyle=LANEC[j%3];c2.fillRect(X(G.RK0+4+r*21)+0.5,Zf(zz+19),L*s-1,19*s);}
+      }
+    }
+    c2.globalAlpha=1;
+    if(swapping){c2.fillStyle=C.txt;c2.textAlign='center';c2.fillText('dolu ranza çıkıyor, boş ranza giriyor',X(G.RK0+45),Zf(base+175));c2.textAlign='left';}
+    // plakanın yan kolu + rayı alttan ve üstten kavrayan makara çiftleri + bant motoru
+    {const tb=G.PL0+pl.px;
+     c2.fillStyle='rgba(24,95,165,.55)';c2.fillRect(X(tb-50),Zf(railZ+5.5),50*s,9*s);
+     const r=Math.max(2,2*s);
+     for(const rx of [tb-5,tb-45]){
+       c2.fillStyle='#0C447C';
+       c2.beginPath();c2.arc(X(rx),Zf(railZ+1.5+2),r,0,7);c2.fill();
+       c2.beginPath();c2.arc(X(rx),Zf(railZ-1.5-2),r,0,7);c2.fill();}
+     c2.fillStyle='#0C447C';c2.fillRect(X(tb-18),Zf(H+12),10*s,6*s);}
+    // plaka (sabit yükseklik)
+    const px0=G.PL0+pl.px;
+    c2.fillStyle=C.steel;c2.fillRect(X(px0),Zf(H),G.PLEN*s,4*s);
+    c2.strokeStyle='rgba(0,0,0,.4)';c2.lineWidth=1;
+    for(let x=px0+(((-pl.belt)%12)+12)%12;x<px0+G.PLEN;x+=12){c2.beginPath();c2.moveTo(X(x),Zf(H));c2.lineTo(X(x),Zf(H-4));c2.stroke();}
+    c2.beginPath();c2.arc(X(px0+G.PLEN),Zf(H-2),2*s,0,7);c2.fillStyle=C.wire;c2.fill();
+    if(pl.level){const xs=[...new Set(pl.level.filter(b=>b.lane===0).map(b=>Math.round(b.x)))];
+      xs.forEach(x=>{c2.fillStyle=LANEC[0];c2.fillRect(X(x)+0.5,Zf(H+19),L*s-1,19*s);});}
+    if(pl.phase==='retract'){c2.fillStyle='#2e8b57';c2.font=`600 ${fs}px system-ui,sans-serif`;c2.fillText('⟵ plaka   bant ⟶',X(px0+10),Zf(H-10));}
+    // stoklar
+    c2.fillStyle=C.txt;c2.font=`${fs}px system-ui,sans-serif`;c2.textBaseline='top';
+    c2.fillText(`boş ranza: ${sd.empty}/${P.inCap}${sd.incoming?` (+${sd.incoming} yolda)`:''} · dolu: ${sd.full}/${P.outCap} · ${sd.racks} ranza doldu${sd.rejected?` · ${sd.rejected} reddedildi`:''}`,ox+4,gy+6);
+  });
+  const busy=S.veh.filter(v=>v.busy).length;
+  c2.fillStyle=C.txt;c2.textAlign='right';c2.textBaseline='top';c2.font=`11px system-ui,sans-serif`;
+  c2.fillText(`taşıyıcı ${busy}/${S.veh.length} seferde`,W2-4,2);c2.textAlign='left';
+}
+
+// ---------- Arayüz ----------
+const fmtT=t=>{const m=Math.floor(t/60),s=Math.floor(t%60);return m+':'+String(s).padStart(2,'0');};
+function set(id,v,s){$(id).textContent=v;if(s!==undefined&&$(id+'S'))$(id+'S').textContent=s;}
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+function theo(){const rmin=Math.min(...P.rate),bpm=3*rmin;return{rmin,bpm,cutT:P.N*60/rmin,blockT:12/bpm*60,levelT:24/bpm*60,rackT:120/bpm*60};}
+function stEst(){const recv=82/P.exitSpeed,lift=30/P.liftSpeed,ins=G.DX/P.vPlate;return{lvl:Math.max(recv,lift)+2*ins,ins};}
+const D0=JSON.parse(JSON.stringify(P));
+const NAMES={};
+function laneDiagText(){
+  return S.lanes.map((ln,i)=>{
+    const lb=S.bricks.filter(b=>b.lane===i&&b.st==='belt');
+    const rel=lb.filter(b=>b.x+P.L>G.GATE+0.5).length;
+    const w=lb.some(b=>b.x+P.L>=G.GATE-0.3&&b.x+P.L<=G.GATE+0.3);
+    const gate={open:'açık',closing:'kapanıyor',closed:'kapalı',opening:'açılıyor'}[ln.gate];
+    let why='';
+    if(!w) why=rel>=4?'4 tamam':'dozajda tuğla yok, bekliyor';
+    else if(!ln.meter) why='4 tamam, 5. bekliyor';
+    else if(ln.gate!=='open') why='kapak '+gate;
+    else if(S.zone.phase!=='fill') why='blok aktarılıyor';
+    else why='bırakılıyor';
+    return `Ş${i+1}: ${rel}/4 · kapak ${gate} · ${why}`;
+  }).join('   |   ');
+}
+function changedText(){
+  const out=[];
+  SL.filter(o=>!o.g).forEach(o=>{const a=getP(o.k),b=/^r\d$/.test(o.k)?D0.rate[+o.k[1]]:D0[o.k];if(a!==b)out.push(`${o.lab}: ${a} ${o.u} (varsayılan ${b})`);});
+  if(P.acc!==D0.acc) out.push('Birikme bandı: tek parça');
+  return out.length?'Değiştirilen ayarlar: '+out.join(' · '):'Tüm ayarlar varsayılan.';
+}
+function diagJSON(){
+  const rel=x=>+(x-G.GATE).toFixed(3);
+  return JSON.stringify({v:'sim-2026-11-18b',t:+S.t.toFixed(2),P,anomaly:S.anomaly,zone:S.zone.phase,
+    lanes:S.lanes.map((ln,i)=>({meter:ln.meter,gate:ln.gate,gt:+(ln.gt||0).toFixed(3),prepRun:!!ln.prepRun,run:ln.run.map(x=>x?1:0).join(''),
+      bricks:S.bricks.filter(b=>b.lane===i&&b.st==='belt').sort((a,b)=>b.x-a.x).slice(0,10).map(b=>rel(b.x))})),
+    tables:S.tables.map(T=>({next:T.next,exiting:!!T.exiting,halves:T.halves.map(h=>!!h)})),
+    sides:S.sides.map(sd=>({plate:sd.plate.phase,rack:sd.rack.phase,levels:sd.rack.levels,groups:sd.groups.length})),
+    lost:S.lost,contacts:S.contacts});
+}
+function updateUI(){
+  $('laneDiag').textContent=laneDiagText();
+  $('changed').textContent=changedText();
+  const t=S.t,m=t/60,ok=t>8,th=theo();
+  set('sTime',fmtT(t));
+  set('sProd',ok?(S.produced/m).toFixed(0):'–',`kesim her ${th.cutT.toFixed(2)} s`);
+  set('sCont',`${S.contacts} / ${S.slips}`,P.acc==='zpa'?'bölgeli bantta 0 olmalı':'tek bantta kuyruk = çarpışma');
+  set('sQueue',S.q.join(' · '),`en çok: ${S.qmax.join(' · ')} · kapasite ${P.acc==='zpa'?P.nZones+1:'—'}/şerit`);
+  const bt=avg(S.blockTimes);
+  const nb=S.blockDir[0]+S.blockDir[1];
+  set('sBlock',bt?bt.toFixed(2)+' s':'–',`gereken ≤ ${th.blockT.toFixed(2)} s · blok başına: doldurma ${nb?(S.wFill/nb).toFixed(2):'–'} s, tabla bekleme ${nb?(S.wTable/nb).toFixed(2):'–'} s · A ${S.blockDir[0]} / B ${S.blockDir[1]}`);
+  set('sSets',S.levels,ok?`${(S.levels/m).toFixed(1)} kat/dk · gereken ${(th.bpm/24).toFixed(1)}`:'');
+  ['A','B'].forEach((n,k)=>{const x=S.sides[k];
+    set('s'+n,`${x.loaded} kat · tampon ${x.groups.length}/${P.Bcap}`,t>1?`plaka %${Math.round(x.loadBusy/t*100)} dolu · kat bekleme %${Math.round(x.starve/t*100)} · ranza bekleme %${Math.round(x.rackWait/t*100)}`:'');});
+  const racks=S.sides[0].racks+S.sides[1].racks;
+  set('sRack',racks,t>30?`${Math.round(racks/(t/3600))} ranza/saat · gereken ${Math.round(th.bpm*60/120)}`:'');
+  const vb=S.veh.reduce((a,v)=>a+v.busyT,0);
+  set('sVeh',t>1?'%'+Math.round(vb/(t*S.veh.length)*100):'–',t>30?`${Math.round(S.tripsV/(t/3600))} sefer/saat · ${S.veh.length} araç`:'');
+  const av=S.scrap.map(x=>S.cuts?x/S.cuts:0),pc=S.scrap.map(x=>{const tot=x+S.cuts*P.N*P.L;return tot?x/tot*100:0;});
+  set('sScrap',av.map(a=>a.toFixed(1)).join(' · ')+' cm',`çamur %${pc.map(p=>p.toFixed(1)).join(' · %')} · yandan itilen ${S.scrapPushed} · ortada artık ${S.midScrap}`);
+  set('sLost',S.lost,`kapak sensörü tetik: ${S.trips}`);
+  if(S.anomaly){const st0=$('status');st0.className='status bad';st0.textContent=`✗ Simülasyon hatası: Ş${S.anomaly.lane+1} ${S.anomaly.t}. saniyede bırakma izni olduğu halde tuğlayı bırakmadı. "Teşhis bilgisini kopyala"ya basıp bana yapıştırır mısın?`;calc(bt);return;}
+  const st=$('status'),rw=S.sides.some(x=>t>60&&x.rackWait/t>0.05),mx=Math.max(...S.qmax);
+  if(S.lost>0){st.className='status bad';st.textContent=`✗ Hat taşıyor: ${S.lost} tuğla kesiciye dayanan kuyruk yüzünden kaybedildi.`;}
+  else if(t<12){st.className='status';st.textContent='Isınıyor… (ilk kesimler banda iniyor)';}
+  else if(S.contacts>0&&P.acc==='zpa'){st.className='status warn';st.textContent=`⚠ Kuyruk birikme bölgelerini aştı: tuğlalar ${S.contacts} kez birbirine değdi.`;}
+  else if(S.contacts>0){st.className='status warn';st.textContent=`⚠ Tek parça bantta kuyrukta bekleyen tuğlalar ${S.contacts} kez birbirine çarptı, bant ${S.slips} kez altlarından kaydı.`;}
+  else if(S.midScrap>0){st.className='status warn';st.textContent=`⚠ Orta şerit en yavaş değil: ortada ${S.midScrap} artık oluştu, yandan itilemez. Kalıpta orta çıkışı biraz daha frenle.`;}
+  else if(t>60&&S.wTable/t>0.05){st.className='status warn';st.textContent='⚠ Ön hazırlık, dolu tablaları bekliyor: yükleme istasyonları ya da ranza taşıma yetişmiyor, kuyruk geriye doğru büyüyor.';}
+  else if(rw){st.className='status warn';st.textContent='⚠ Yükleyiciler ranza bekliyor: taşıyıcılar ya da ranza değişimi yetişmiyor.';}
+  else if(mx>=P.nZones){st.className='status warn';st.textContent='⚠ Sınırda: birikme bölgeleri neredeyse doldu.';}
+  else{st.className='status ok';st.textContent=`✓ Hat dengede: dakikada ${th.bpm} tuğla, temas yok, iki istasyon ve ranza taşıma yetişiyor.`;}
+  calc(bt);
+}
+function calc(bt){
+  const th=theo(),e=stEst();
+  const rackNeed=5*e.lvl+P.swapT+120/P.liftSpeed;
+  const rows=[
+    ['Kesim aralığı (en yavaş şerit 8 tuğla boyuna ulaşınca)',th.cutT.toFixed(2)+' s'],
+    ['Üretim',th.bpm+' tuğla/dk · '+(th.bpm*60).toLocaleString('tr-TR')+'/saat'],
+    ['3×4 blok geliş aralığı (ön hazırlığın sınırı)',th.blockT.toFixed(2)+' s'],
+    ['Ölçülen ortalama blok çevrimi',bt?bt.toFixed(2)+' s':'–'],
+    ['Her istasyona kat gelme aralığı',(2*th.levelT).toFixed(2)+' s'],
+    ['Plaka çevrimi: max(kat alma, kaldırıcı 30 cm) + giriş + çıkış',e.lvl.toFixed(2)+' s'],
+    ['Ranza başına: 5 kat + değişim + boş ranzayı 120 cm kaldırma / kullanılabilir',rackNeed.toFixed(1)+' s / '+(2*th.rackT).toFixed(1)+' s'],
+    ['Ranza ihtiyacı (A + B)',Math.round(th.bpm*60/120)+' ranza/saat'],
+    ['Gereken taşıyıcı (sefer = 1 dolu götür + 1 boş getir)',(th.bpm*60/120*P.tripT/3600).toFixed(2)+' araç'],
+    ['Artık oranı (Ş1 · Ş2 · Ş3)',P.rate.map(r=>((r-th.rmin)/r*100).toFixed(1)+'%').join(' · ')],
+  ];
+  $('calc').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+}
+const ACCN={
+  zpa:"Her şeritte bölgeler ayrı motorlu (ya da tek motor + bölge başına elektromanyetik kavrama). Önündeki bölge doluysa bölge, tuğlası uçtaki sensöre gelince durur. Tuğla hiç kaymaz, hiç değmez. Kırmızı çerçeve görürsen temas var demektir.",
+  single:"Kuyruk oluşunca bant dönmeye devam eder, tuğlalar birbirine dayanır ve altlarından bant kayar. Yaş tuğlada köşe ezilmesi ve alt yüzey aşınması demek. Kırmızı çerçeveli tuğlalar temas halinde."
+};
+const SL=[
+  {g:'Pres'},
+  {k:'r0',lab:'Şerit 1 hızı',min:20,max:200,step:1,u:'tuğla/dk'},
+  {k:'r1',lab:'Şerit 2 (orta) hızı',min:20,max:200,step:1,u:'tuğla/dk'},
+  {k:'r2',lab:'Şerit 3 hızı',min:20,max:200,step:1,u:'tuğla/dk'},
+  {k:'N',lab:'Kesimde şerit başına tuğla',min:4,max:12,step:1,u:'adet',reset:true},
+  {g:'Birikme ve ön hazırlık'},
+  {k:'nZones',lab:'Birikme bölgesi sayısı (şerit başına)',min:1,max:10,step:1,u:'bölge',reset:true},
+  {k:'vb',lab:'Hızlandırma bölgesi',min:40,max:400,step:5,u:'cm/s'},
+  {k:'va',lab:'Birikme / dozaj bölgeleri',min:40,max:400,step:5,u:'cm/s'},
+  {k:'vz',lab:'Ön hazırlık indeksleme',min:40,max:500,step:5,u:'cm/s'},
+  {k:'gateT',lab:'Kapak kapanma / açılma',min:0.05,max:1.5,step:0.05,u:'s'},
+  {k:'liftT',lab:'Pop-up kalkma / inme',min:0.05,max:1,step:0.05,u:'s'},
+  {k:'tSpeed',lab:'Pop-up yan transfer',min:30,max:400,step:5,u:'cm/s'},
+  {g:'Yükleme istasyonları'},
+  {k:'exitSpeed',lab:'Kat transfer / tampon bandı',min:20,max:300,step:5,u:'cm/s'},
+  {k:'Bcap',lab:'Tampon (kat)',min:0,max:3,step:1,u:'kat',reset:true},
+  {k:'vPlate',lab:'Fırıncı plaka giriş/çıkış hızı',min:15,max:150,step:5,u:'cm/s'},
+  {k:'liftSpeed',lab:'Ranza kaldırıcı hızı',min:5,max:60,step:1,u:'cm/s'},
+  {k:'swapT',lab:'Ranza değişim süresi',min:2,max:30,step:1,u:'s'},
+  {k:'badRack',lab:'Çıtası dik (uyumsuz) ranza oranı',min:0,max:50,step:1,u:'%'},
+  {k:'pushV',lab:'Artık itici hızı',min:30,max:300,step:10,u:'cm/s'},
+  {g:'Ranza taşıma'},
+  {k:'inCap',lab:'Boş ranza giriş kapasitesi',min:1,max:8,step:1,u:'ranza'},
+  {k:'outCap',lab:'Dolu ranza çıkış kapasitesi',min:1,max:8,step:1,u:'ranza'},
+  {k:'nVeh',lab:'Taşıyıcı sayısı (forklift/AGV)',min:1,max:8,step:1,u:'araç',reset:true},
+  {k:'tripT',lab:'Taşıyıcı tur süresi',min:15,max:300,step:5,u:'s'},
+];
+const getP=k=>/^r\d$/.test(k)?P.rate[+k[1]]:P[k];
+const setP=(k,v)=>{if(/^r\d$/.test(k))P.rate[+k[1]]=v;else P[k]=v;};
+function buildSliders(){
+  $('sliders').innerHTML=SL.map(o=>o.g?`<div class="grp">${o.g}</div>`:`<div class="row"><label for="i_${o.k}">${o.lab}</label><output id="o_${o.k}"></output>
+    <input type="range" id="i_${o.k}" min="${o.min}" max="${o.max}" step="${o.step}" value="${getP(o.k)}"></div>`).join('');
+  SL.filter(o=>!o.g).forEach(o=>{const inp=$('i_'+o.k),out=$('o_'+o.k);
+    const show=()=>out.textContent=(+inp.value)+' '+o.u+(/^r\d$/.test(o.k)?` (${(+inp.value*P.L/60).toFixed(1)} cm/s)`:'');
+    show();inp.addEventListener('input',()=>{setP(o.k,+inp.value);show();if(o.reset)reset();updateUI();});});
+}
+$('acc').addEventListener('change',e=>{P.acc=e.target.value;$('accNote').textContent=ACCN[P.acc];reset();});
+$('accNote').textContent=ACCN[P.acc];
+
+let running=true,mult=1,last=performance.now(),lastUI=0;
+const DT=0.005;
+$('bPlay').onclick=()=>{running=!running;$('bPlay').textContent=running?'Durdur':'Oynat';};
+$('bReset').onclick=()=>reset();
+$('bDefaults').onclick=()=>{const keep=P.acc;Object.assign(P,JSON.parse(JSON.stringify(D0)));$('acc').value=P.acc;$('accNote').textContent=ACCN[P.acc];buildSliders();reset();updateUI();};
+$('bDiag').onclick=()=>{const txt=diagJSON(),ta=$('diagOut');ta.style.display='block';ta.value=txt;ta.select();
+  try{navigator.clipboard.writeText(txt).then(()=>{$('bDiag').textContent='Kopyalandı ✓';},()=>{$('bDiag').textContent='Kutudan kopyala';});}catch(e){$('bDiag').textContent='Kutudan kopyala';}};
+$('bFF').onclick=()=>{const n=Math.round(600/DT);for(let i=0;i<n;i++)step(DT);updateUI();};
+document.querySelectorAll('.sp').forEach(b=>b.onclick=()=>{mult=+b.dataset.m;document.querySelectorAll('.sp').forEach(x=>x.classList.toggle('on',x===b));});
+addEventListener('resize',()=>{layout();layout2();});
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',readColors);}catch(e){}
+
+function frame(now){
+  const fd=Math.min(0.1,(now-last)/1000);last=now;
+  if(running){let rem=fd*mult;while(rem>1e-9){const d=Math.min(DT,rem);step(d);rem-=d;}}
+  draw();draw2();
+  if(now-lastUI>200){updateUI();lastUI=now;}
+  requestAnimationFrame(frame);
+}
+reset();buildSliders();updateUI();requestAnimationFrame(frame);
+</script>
+</body>
+</html>

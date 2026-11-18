@@ -1,0 +1,203 @@
+/* Yerleşim: tam ekran 3D sahne; üstte saat şeridi, altta yarı saydam kumanda rafı, dokunulan parçanın kartı üstte. */
+:root {
+  --bg: #e4e1d9;            /* beton */
+  --scene: #dcd9d1;
+  --floor: #c2bcb0;
+  --grid: #a39c8f;
+  --sun: 2.1;
+  --panel: rgba(247, 245, 240, 0.9);
+  --panel-solid: #f7f5f0;
+  --fg: #23211d;
+  --muted: #69645b;
+  --line: #d2ccc1;
+  --chip: #ece8e0;
+  --accent: #c8621a;        /* kesici şasesinin turuncusu */
+  --accent-fg: #ffffff;
+  --focus: #2f6fd6;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17181a;
+    --scene: #1c1e21;
+    --floor: #4a4741;
+    --grid: #5d5952;
+    --sun: 1.7;
+    --panel: rgba(30, 31, 34, 0.9);
+    --panel-solid: #1e1f22;
+    --fg: #ecebe7;
+    --muted: #a39e95;
+    --line: #3a3c40;
+    --chip: #2a2c30;
+    --accent: #e57f35;
+    --accent-fg: #1a1208;
+    --focus: #7aa7ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17181a;
+  --scene: #1c1e21;
+  --floor: #4a4741;
+  --grid: #5d5952;
+  --sun: 1.7;
+  --panel: rgba(30, 31, 34, 0.9);
+  --panel-solid: #1e1f22;
+  --fg: #ecebe7;
+  --muted: #a39e95;
+  --line: #3a3c40;
+  --chip: #2a2c30;
+  --accent: #e57f35;
+  --accent-fg: #1a1208;
+  --focus: #7aa7ff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.4 var(--font-ui);
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+#app { position: relative; height: 100%; overflow: hidden; }
+#view { position: absolute; inset: 0; }
+#view canvas { display: block; touch-action: none; }
+.labels { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+#hud, #info, #dock { z-index: 2; }
+
+.lbl {
+  font: 600 11px/1.2 var(--font-ui);
+  color: var(--fg);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+/* ---- üst şerit ---- */
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  pointer-events: none;
+}
+.brand, .clock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 10px;
+  min-width: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.eyebrow {
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.stage { font-size: 12px; color: var(--muted); }
+.clock { align-items: flex-end; }
+.clock .t { font: 600 18px/1.1 var(--font-num); font-variant-numeric: tabular-nums; }
+.clock .s { font: 500 11px/1.2 var(--font-num); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---- parça kartı ---- */
+#info {
+  position: absolute;
+  top: 66px;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 520px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: var(--panel-solid);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 8px 8px 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+.info-text { min-width: 0; flex: 1; }
+.info-title { font-weight: 600; font-size: 14px; text-wrap: balance; }
+.info-detail { font-size: 12.5px; color: var(--muted); margin-top: 2px; max-height: 32vh; overflow-y: auto; }
+
+/* ---- alt raf ---- */
+#dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-block: 10px 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-width: 0; }
+.row.cams { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -4px; padding-inline: 4px; }
+.row.cams::-webkit-scrollbar { display: none; }
+
+button {
+  font: 500 13px/1 var(--font-ui);
+  color: var(--fg);
+  background: var(--chip);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  height: 34px;
+  padding: 0 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: none;
+  -webkit-tap-highlight-color: transparent;
+}
+button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; min-width: 82px; }
+button.on { border-color: var(--accent); color: var(--accent); font-weight: 600; background: var(--panel-solid); }
+button.icon { width: 30px; height: 30px; padding: 0; font-size: 18px; line-height: 1; background: transparent; border-color: transparent; color: var(--muted); }
+.seg { display: flex; margin-left: auto; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: var(--chip); min-width: 44px; padding: 0 8px; font-family: var(--font-num); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--panel-solid); }
+.toggle::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid currentColor; margin-right: 6px; vertical-align: 0; }
+.toggle.on::before { background: currentColor; }
+.hint { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+@media (max-width: 430px) {
+  .row.cams { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding-inline: 0; }
+  .row.cams button { padding: 0 10px; }
+  .hint { display: none; }
+  .seg { margin-left: 0; }
+  .stage { font-size: 11px; }
+  #info { top: 62px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}

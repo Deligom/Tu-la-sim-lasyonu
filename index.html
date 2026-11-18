@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tuğla Dizme Hattı 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#e4e1d9">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+</head>
+<body>
+<div id="app">
+  <div id="view" aria-label="Hattın 3D görünümü"></div>
+
+  <header id="hud">
+    <div class="brand">
+      <span class="eyebrow">Tuğla dizme hattı · 3D</span>
+      <span class="stage" id="stage">Aşama 0–1 · sabit geometri, gerçek ölçek</span>
+    </div>
+    <div class="clock" aria-live="off">
+      <span class="t" id="simTime">0:00,00</span>
+      <span class="s" id="simSteps">0 adım × 5 ms</span>
+    </div>
+  </header>
+
+  <section id="info" hidden aria-live="polite">
+    <div class="info-text">
+      <div class="info-title" id="infoTitle"></div>
+      <div class="info-detail" id="infoDetail"></div>
+    </div>
+    <button id="infoClose" class="icon" type="button" aria-label="Bilgiyi kapat">×</button>
+  </section>
+
+  <footer id="dock">
+    <div class="row">
+      <button id="bPlay" type="button" class="primary">Durdur</button>
+      <button id="bReset" type="button">Sıfırla</button>
+      <div class="seg" role="group" aria-label="Simülasyon hızı">
+        <button type="button" data-speed="0.25">¼×</button>
+        <button type="button" data-speed="1" class="on" aria-pressed="true">1×</button>
+        <button type="button" data-speed="3">3×</button>
+        <button type="button" data-speed="10">10×</button>
+      </div>
+    </div>
+    <div class="row cams" id="cams" role="group" aria-label="Kamera açısı"></div>
+    <div class="row opts">
+      <button id="bLabels" type="button" class="toggle on" aria-pressed="true">Etiketler</button>
+      <button id="bSlats" type="button" class="toggle" aria-pressed="false">Çıtalar: paralel</button>
+      <span class="hint">Bir parçaya dokun, adı ve ölçüsü çıksın</span>
+    </div>
+  </footer>
+</div>
+<script type="module" src="./src/main.ts"></script>
+</body>
+</html>
