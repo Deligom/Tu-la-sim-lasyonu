@@ -1,31 +1,36 @@
-// Simülasyon durumu. Aşama 0–1'de yalnızca zaman ilerliyor; Aşama 2'de referans-2d-simulasyon.html
-// içindeki step() mantığı buraya taşınacak (aynı parametreler, aynı sonuçlar).
+// Simülasyon: parametreler + plan yerleşimi + durum. Mantık model.ts'de (2D step()'in birebir karşılığı).
 // Bu klasör (src/sim) three.js'e ve DOM'a bağımlı değildir; Node'da çalışır.
 
 import { cloneParams, type Params } from './params';
 import { planLayout, type PlanLayout } from './geometry';
+import { createState, step, type SimState } from './model';
 import type { Steppable } from './loop';
 
 export class Simulation implements Steppable {
   params: Params;
   layout: PlanLayout;
-  /** Simülasyon zamanı, s */
-  t = 0;
+  S: SimState;
   steps = 0;
 
   constructor(params?: Partial<Params>) {
     this.params = { ...cloneParams(), ...params };
     this.layout = planLayout(this.params);
+    this.S = createState(this.params, this.layout);
+  }
+
+  /** Simülasyon zamanı, s */
+  get t(): number {
+    return this.S.t;
   }
 
   reset(): void {
     this.layout = planLayout(this.params);
-    this.t = 0;
+    this.S = createState(this.params, this.layout);
     this.steps = 0;
   }
 
   step(dt: number): void {
-    this.t += dt;
+    step(this.S, this.params, this.layout, dt);
     this.steps++;
   }
 }

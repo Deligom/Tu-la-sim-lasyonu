@@ -9,12 +9,13 @@ import type { LabelSpec } from './labels';
 import { buildRack, type RackModel } from './rack';
 import { popupBandX, tableColumnY, type PlanLayout, type Side } from '../sim/geometry';
 import type { Params } from '../sim/params';
-import { PLAKA, RANZA, Z, rackLiftFor } from '../sim/dims';
+import { PIT_DEPTH, PLAKA, RANZA, Z, rackFeetZ } from '../sim/dims';
 
 export interface LifterModel {
   platform: THREE.Group;
-  setLift(lift: number): void;
-  lift: number;
+  /** Ranza ayağının zeminden yüksekliği (eksi = çukurda) */
+  feetZ: number;
+  setFeetZ(z: number): void;
 }
 
 export interface StationHandles {
@@ -23,12 +24,14 @@ export interface StationHandles {
   tablePopup: THREE.Group;
   /** Plaka düzeneği; position.x = strok (0 = bekleme) */
   plate: THREE.Group;
+  /** Plaka zincirleri (doku kaydırma / bağlantı noktası Aşama 3'te) */
+  chains: THREE.Group;
   rack: RackModel;
   lifter: LifterModel;
 }
 
-/** Kaldırıcı platformu ve ranzanın Z = 0'daki (en alçak) hali; rods birim boylu, Z'de ölçeklenir. */
-const ROD_BASE_Z = -30;
+/** Kaldırıcı platformu ranza ayağı Z = 0'dayken kurulur; silindir kolları birim boylu, Z'de ölçeklenir. */
+const ROD_BASE_Z = -PIT_DEPTH;
 const CROSS_BOTTOM = -12;
 
 export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, labels: LabelSpec[]): { group: THREE.Group; handles: StationHandles } {
@@ -113,7 +116,9 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
   const ch = new Parts({
     title: `${name} yükleyici şasesi + yan raylar`,
     detail: `Plakanın iki yanında sabit çelik profil ray (X ${railX0}–${railX1}), ranzanın DIŞINDA biter. ` +
-      'Plakanın kollarındaki makara çiftleri rayı alttan ve üstten kavrar. Plakanın altında araba yok.',
+      'Plakanın kollarındaki makara çiftleri rayı alttan ve üstten kavrar. Plakanın altında araba yok. ' +
+      'İleri-geri tahrik: iki rayın dışında birer zincir; tamponun altından geçen ortak mille tek motordan sürülür, ' +
+      'iki taraf mekanik senkron (plaka çapraz kaçamaz). Motor servo: strok konumu ve bant sarma hızı ona bağlı.',
   });
   const postX = [railX0 + 1, railX1 - 16];
   for (const v of [-1, 1]) {
@@ -125,6 +130,38 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
   }
   for (const x of postX) ch.box(M.rail, x, x + 4, c - 55.2, c + 55.2, 0, 6);
   group.add(ch.build());
+
+  // ---------- Plaka tahriki: iki yanda zincir, ortak mil, tek motor ----------
+  const sprR = 3.75;
+  const zMid = (rz0 + rz1) / 2;
+  const spX0 = railX0 - 0.5; // arka dişli (ortak milin hizasında)
+  const spX1 = railX1 - 4; // ön dişli (ranzanın dışında)
+  const shaftZ = Z.tampon - 24; // tamponun altından geçer
+  const dr = new Parts({
+    title: `${name} plaka zincir tahriki`,
+    detail: 'Rayların dışında birer makaralı zincir (ör. 08B). Arka dişliler, tamponun altından geçen ortak mile kısa dikey ' +
+      'zincirle bağlı; ortak mili tek servo redüktörlü motor döndürür. Zincir kola bağlı, kol plakayı taşır. Zincir gerdirme ön dişlide.',
+  });
+  for (const v of [-1, 1]) {
+    const yc = c + v * 56.2;
+    dr.box(M.chain, spX0, spX1, yc - 0.4, yc + 0.4, zMid + sprR - 0.4, zMid + sprR + 0.4);
+    dr.box(M.chain, spX0, spX1, yc - 0.4, yc + 0.4, zMid - sprR - 0.4, zMid - sprR + 0.4);
+    for (const x of [spX0, spX1]) {
+      dr.cyl(M.steelDark, 'y', x, yc, zMid, sprR, 1, 18);
+      dr.cyl(M.steel, 'y', x, c + v * 56.6, zMid, 0.8, 3.2, 8);
+    }
+    // arka dişli eksenindeki ikinci dişli → ortak mile dikey zincir
+    const yv = c + v * 57.6;
+    dr.cyl(M.steelDark, 'y', spX0, yv, zMid, 2.4, 0.8, 14);
+    dr.cyl(M.steelDark, 'y', spX0, yv, shaftZ, 2.4, 0.8, 14);
+    for (const dx of [-2.4, 2.4]) dr.box(M.chain, spX0 + dx - 0.35, spX0 + dx + 0.35, yv - 0.35, yv + 0.35, shaftZ, zMid);
+    dr.box(M.frame, spX1 - 1, spX1 + 6, c + v * 55.2, c + v * 57.2, zMid - 1, zMid + 1);
+  }
+  dr.cyl(M.steel, 'y', spX0, c, shaftZ, 1.3, 116.4, 10);
+  dr.box(M.motor, spX0 - 7, spX0 + 7, c - 8, c + 8, shaftZ - 13, shaftZ - 1.4);
+  dr.cyl(M.motor, 'x', spX0 - 14, c, shaftZ - 7, 5, 14, 14);
+  const chains = dr.build(`${name} plaka tahriki`);
+  group.add(chains);
 
   // ---------- Fırıncı plakası (hareketli) ----------
   const R0 = lay.PL0;
@@ -151,9 +188,9 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
   pl.cyl(M.plateBelt, 'y', R0 + PLAKA.boy - 1, c, zu - 1.15, 1.15, 98, 14);
   pl.cyl(M.steelDark, 'y', R0 + 2.3, c, (za + zu) / 2, 2.2, 98, 16);
   // arka kiriş, bağlantı levhaları, bant motoru (hepsi plakanın arkasında: ranzaya hiç girmez)
-  pl.box(M.steel, R0 - 8, R0, c - 51.8, c + 51.8, 140, 148);
-  for (const v of [-1, 1]) pl.box(M.steel, R0 - 0.8, R0, c + v * 44, c + v * 49, 148, za + 0.3);
-  pl.box(M.motor, R0 - 20, R0 - 8, c - 7, c + 7, 128, 140);
+  pl.box(M.steel, R0 - 8, R0, c - 51.8, c + 51.8, za - 10.5, za - 2.5);
+  for (const v of [-1, 1]) pl.box(M.steel, R0 - 0.8, R0, c + v * 44, c + v * 49, za - 2.5, za + 0.3);
+  pl.box(M.motor, R0 - 20, R0 - 8, c - 7, c + 7, za - 22.5, za - 10.5);
   // kollar ve makara çiftleri
   const fu = rz1 + 1.75;
   const fl = rz0 - 1.75;
@@ -165,6 +202,10 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
       pl.cyl(M.follower, 'y', xr, c + v * 53.7, fl, 1.75, 2.6, 14);
       for (const z of [fu, fl]) pl.cyl(M.steelDark, 'y', xr, c + v * 52.1, z, 0.5, 0.6, 8);
     }
+    // zincir bağlantısı: kolun üstünden makaraların üzerinden zincirin üst koluna
+    const xa = R0 - 25;
+    pl.box(M.arm, xa - 3, xa + 3, c + v * 51.8, c + v * 56.8, fu + 1.9, fu + 3.25);
+    pl.box(M.arm, xa - 3, xa + 3, c + v * 55.6, c + v * 56.8, zMid + sprR + 0.4, fu + 3.25);
   }
   // plaka ucunda 2 lazer mesafe sensörü
   for (const v of [-1, 1]) {
@@ -181,12 +222,13 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
   const pb0 = [rx1 + 2, rx1 + 10];
   const lfInfo = {
     title: `${name} ranza kaldırıcı`,
-    detail: `Hidrolik, ${p.liftSpeed} cm/s. Plaka sabit; kaldırıcı ranzanın sıradaki katını plaka hizasına getirir. ` +
-      'En alt kat önce: kaldırma = (4 − dolu kat) × 30 cm, ranza boşken 120 cm. Zincirli konveyör, pnömatik durdurma pimi (sarı), ' +
-      'iki yandan senkron kendinden merkezli çene. Kaldırıcı en altta iken platform zeminle aynı hizada (çukurda). Kolon düzeni şematik.',
+    detail: `Hidrolik, ${p.liftSpeed} cm/s, ${PIT_DEPTH} cm'lik çukurda. Plaka sabit; kaldırıcı ranzanın sıradaki katını plaka hizasına getirir. ` +
+      `En alt kat önce: kaldırma = (4 − dolu kat) × 30 cm. Ranza ayağı boşken +${tr(rackFeetZ(0))} cm, son katta ${tr(rackFeetZ(4))} cm (çukurda). ` +
+      'Değişim zeminde: dolu ranza zemine kalkar, boşu zeminden alır. Zincirli konveyör, pnömatik durdurma pimi (sarı), ' +
+      'iki yandan senkron kendinden merkezli çene. Kolon / silindir düzeni şematik.',
   };
   const lf = new Parts(lfInfo);
-  for (const [a, b] of [pf0, pb0]) for (const v of [-1, 1]) lf.box(M.lifter, a, b, c + v * 64, c + v * 72, -34, 140);
+  for (const [a, b] of [pf0, pb0]) for (const v of [-1, 1]) lf.box(M.lifter, a, b, c + v * 64, c + v * 72, -PIT_DEPTH, rackFeetZ(0) + 25);
   group.add(lf.build());
 
   const pf = new Parts(lfInfo);
@@ -231,20 +273,20 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
 
   const lifter: LifterModel = {
     platform,
-    lift: 0,
-    setLift(l: number) {
-      this.lift = l;
-      platform.position.z = l;
-      rack.group.position.z = l;
-      for (const rod of rods) rod.scale.z = Math.max(0.01, l + CROSS_BOTTOM - ROD_BASE_Z);
+    feetZ: 0,
+    setFeetZ(z: number) {
+      this.feetZ = z;
+      platform.position.z = z;
+      rack.group.position.z = z;
+      for (const rod of rods) rod.scale.z = Math.max(0.01, z + CROSS_BOTTOM - ROD_BASE_Z);
     },
   };
-  lifter.setLift(rackLiftFor(0));
+  lifter.setFeetZ(rackFeetZ(0));
 
   labels.push({ text: `${name} tablası`, pos: [(tx0 + tx1) / 2, c, zr + 26] });
   if (lay.BL > 0) labels.push({ text: `Tampon ${name}`, pos: [lay.BUF0 + lay.BL / 2 - 10, c, zr + 26] });
   labels.push({ text: `Plaka ${name}`, pos: [R0 + PLAKA.boy / 2, c, zr + 30] });
-  labels.push({ text: `Ranza ${name} · ${tr(rackLiftFor(0))} cm kalkık`, pos: [(rx0 + rx1) / 2, c, rackLiftFor(0) + RANZA.cerceveYuk + 26] });
+  labels.push({ text: `Ranza ${name} · boş`, pos: [(rx0 + rx1) / 2, c, rackFeetZ(0) + RANZA.cerceveYuk + 26] });
 
-  return { group, handles: { side, tablePopup, plate, rack, lifter } };
+  return { group, handles: { side, tablePopup, plate, chains, rack, lifter } };
 }

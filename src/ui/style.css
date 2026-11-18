@@ -14,6 +14,7 @@
   --accent: #c8621a;        /* kesici şasesinin turuncusu */
   --accent-fg: #ffffff;
   --focus: #2f6fd6;
+  --bad: #b8372b;
   --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-num: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
@@ -33,6 +34,7 @@
     --accent: #e57f35;
     --accent-fg: #1a1208;
     --focus: #7aa7ff;
+    --bad: #ff7a6b;
     color-scheme: dark;
   }
 }
@@ -51,6 +53,7 @@
   --accent: #e57f35;
   --accent-fg: #1a1208;
   --focus: #7aa7ff;
+  --bad: #ff7a6b;
   color-scheme: dark;
 }
 
@@ -122,6 +125,7 @@ body {
 .clock { align-items: flex-end; }
 .clock .t { font: 600 18px/1.1 var(--font-num); font-variant-numeric: tabular-nums; }
 .clock .s { font: 500 11px/1.2 var(--font-num); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.clock .s.bad { color: var(--bad); font-weight: 600; }
 
 /* ---- parça kartı ---- */
 #info {

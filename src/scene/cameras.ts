@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import type { PlanLayout } from '../sim/geometry';
-import { RANZA, Z } from '../sim/dims';
+import { RANZA, Z, rackFeetZ } from '../sim/dims';
 
 export const CAMS = ['genel', 'ustten', 'hazirlik', 'aYan', 'bYan', 'ranzaIci'] as const;
 export type CamName = (typeof CAMS)[number];
@@ -57,15 +57,15 @@ export function camPose(name: CamName, lay: PlanLayout, vb: ViewBox): CamPose {
   switch (name) {
     case 'genel':
       return portrait
-        ? fit(v(360, 0, 70), v(-0.78, -0.34, 0.6), 230, 330, 45, vb)
-        : fit(v(320, 0, 70), v(-0.36, -0.78, 0.55), 560, 230, 45, vb);
+        ? fit(v(360, 0, 40), v(-0.78, -0.34, 0.6), 230, 300, 45, vb)
+        : fit(v(320, 0, 40), v(-0.36, -0.78, 0.55), 560, 200, 45, vb);
     case 'ustten': {
       const x0 = -400;
       const cx = (x0 + xEnd) / 2;
       const half = (xEnd - x0) / 2 + 20;
       const hy = cA + 75;
       // Tam tepeden bakışta yön belirsiz olmasın diye çok küçük bir eğim veriliyor.
-      const top = RANZA.cerceveYuk + 120 + 10; // boş ranzanın tepesi
+      const top = rackFeetZ(0) + RANZA.cerceveYuk + 10; // boş ranzanın tepesi
       return portrait
         ? fit(v(cx, 0, 0), v(0.002, 0, 1), hy, half, 32, vb, top)
         : fit(v(cx, 0, 0), v(0, -0.002, 1), half, hy, 32, vb, top);
@@ -81,7 +81,7 @@ export function camPose(name: CamName, lay: PlanLayout, vb: ViewBox): CamPose {
       const c = name === 'aYan' ? cA : cB;
       const s = name === 'aYan' ? 1 : -1;
       const cx = (lay.BUF0 + xEnd) / 2;
-      return fit(v(cx, c, 140), v(-0.06, s, 0.12), 180, 150, 30, vb, 60);
+      return fit(v(cx, c, Z.hat - 10), v(-0.06, s, 0.12), 180, 150, 30, vb, 60);
     }
     case 'ranzaIci': {
       // A ranzasının içinde, aktif katın (en alt kat, plaka hizası) çıtalarının 10 cm üstünde, plakaya doğru bakış.

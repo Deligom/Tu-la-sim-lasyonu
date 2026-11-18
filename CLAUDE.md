@@ -57,17 +57,29 @@ referansı o dosyadaki `step()` fonksiyonudur; 3D sürüm aynı sonuçları verm
     **Kılavuz:** plakanın iki yanında, ranzanın DIŞINDA biten sabit çelik profil ray. Plakanın arkasından iki yana
     50 cm (tercihen 60 cm) kol; her kolda 2 makara çifti (cam follower) rayı **alttan ve üstten** kavrar, biri
     eksantrik milli (boşluk alma). Altında araba YOK. Bant motoru plakanın arka kısmında.
+    **İleri-geri tahrik (2026-11-18):** zincir. Rayların dışında birer makaralı zincir, tamponun altından geçen ortak
+    mille tek servo motordan sürülür (iki taraf mekanik senkron). Vidalı mil yok: yavaş ve araya bir şey sıkışmaya açık.
 12. **Ranza:** 120 (boy, Y) × 90 (derinlik, X) × 150 cm (en üst tuğlayla 180), 5 kat, kat arası 30 cm,
     kullanılabilir yükseklik 28 cm. 5 mm köşebent çerçeve, ahşap çıtalar. İç derinlik ~85 cm, kullanılabilir boy
     110 cm (her yandan 5 cm pay → 100). Çıtalar **plaka giriş yönüne paralel** olmalı; dik çıtalı ranzada tuğla ucu
     boşluğa düşüp ezilir → plaka ucundaki lazer ile tespit edilip ranza reddedilir.
 13. **Ranza kaldırıcı:** hidrolik, 20 cm/s. Plaka sabit yükseklikte; ranza sıradaki katı plaka hizasına getirir.
     **En alt kat önce** (ranza boşken en yukarıda, kaldırma = (4 − dolu kat) × 30 cm).
+    **Hat yüksekliği ve çukur (2026-11-18):** hat (pres ağzı, bant yüzeyi) zeminden ~1 m. Hatta seviye farkı yok;
+    kot farkını kaldırıcı çukuru alır. Ranza ayağı boşken ~+65 cm, son katta ~−55 cm (çukurda), çukur ~77 cm.
+    Ranza değişimi zeminde: dolu ranza zemine kalkar, boş ranza zeminden ilk kata kalkar. Toplam kaldırma
+    (55 + 65 = 120 cm) ve süre 2D ile aynı.
 14. **Ranza konumlama:** zincirli konveyör + pnömatik durdurma pimi + iki yandan senkron kendinden merkezli çene.
     Her kattan önce plaka ucundaki 2 lazer mesafe sensörü çıta yüksekliğini ve eğimi ölçer.
 15. **Ranza değişimi ve taşıma:** değişim 6 s; istasyon başına 3 boş giriş + 3 dolu çıkış tamponu.
     ~120 ranza/saat (iki istasyon toplam). 3 AGV (kaldırmalı, ranzanın altına girer), 60 s tur.
 16. **Emniyet:** ilk birikme bölgesinde "kuyruk dolu" sensörü → PLC presi otomatik durdurur.
+
+## İkinci ürün: yığma tuğla (tasarımı açık, 2026-11-18)
+- 29 × 13,5 × 19 cm. Kalıp değişince 2 sütun çıkıyor (sütun eni 29), tel aralığı 13,5 cm (makinist ayarlıyor).
+- Makine bunu da dizmeli. 29'luk kenarla 3 × 29 = 87 cm, ranzanın 90 cm'lik derinliğine sığmıyor.
+- Elle diziliş: önde ve arkada 29'luk kenar plaka giriş yönünde (X) birer sıra, ortada 13,5 cm'lik yatay sıra.
+- Akış, kesici, birikme, ön hazırlık ve tabla bu ürün için henüz tasarlanmadı (ROADMAP'e bak).
 
 ## 2D simülasyonda doğrulanan sonuçlar (240/dk, varsayılanlar)
 - Blok her 3,0 s; ön hazırlık ~330/dk'ya kadar yetişiyor (~%35–40 pay); ~360/dk'da taşıyor.

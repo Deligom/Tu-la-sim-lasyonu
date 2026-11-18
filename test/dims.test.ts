@@ -1,12 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { PLAKA, RANZA, TUGLA, Z, rackLiftFor, slatTopZ, upperLevelClearance } from '../src/sim/dims';
+import { HAT_Z, PIT_DEPTH, PLAKA, RACK_FEET_LOW, RACK_SWAP_LIFT, RANZA, TUGLA, Z, rackFeetZ, rackLiftFor, slatTopZ, upperLevelClearance } from '../src/sim/dims';
 
 describe('ranza kaldırıcı', () => {
   it('kaldırma = (4 − dolu kat) × 30; boş ranza en yukarıda', () => {
     expect([0, 1, 2, 3, 4].map(rackLiftFor)).toEqual([120, 90, 60, 30, 0]);
   });
   it('sıradaki katın çıtası her zaman plaka hizasında', () => {
-    for (let j = 0; j < RANZA.katSayisi; j++) expect(slatTopZ(j, rackLiftFor(j))).toBe(Z.aktifCita);
+    for (let j = 0; j < RANZA.katSayisi; j++) {
+      expect(slatTopZ(j, rackFeetZ(j))).toBeCloseTo(Z.aktifCita, 9);
+      expect(rackFeetZ(j)).toBeCloseTo(RACK_FEET_LOW + rackLiftFor(j), 9);
+    }
+  });
+  it('hat 1 m: ranza son katlarda çukura iner, değişim zeminde', () => {
+    expect(HAT_Z).toBe(100);
+    expect(rackFeetZ(0)).toBeGreaterThan(0); // boş ranza zeminden kalkık
+    expect(RACK_FEET_LOW).toBeLessThan(0); // son katta çukurda
+    expect(RACK_FEET_LOW + RACK_SWAP_LIFT).toBeCloseTo(0, 9);
+    expect(PIT_DEPTH).toBeGreaterThanOrEqual(-RACK_FEET_LOW + 12);
+    // dolu ranzayı zemine kaldır + boşu zeminden ilk kata kaldır = 2D'deki 120 cm (süre aynı kalır)
+    expect(RACK_SWAP_LIFT + (rackFeetZ(0) - 0)).toBeCloseTo(rackLiftFor(0), 9);
   });
   it('en üst kat çerçevenin üstünde, zarf 180 cm içinde', () => {
     expect(slatTopZ(RANZA.katSayisi - 1, 0)).toBe(RANZA.cerceveYuk);

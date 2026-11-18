@@ -5,7 +5,7 @@ import { Parts } from './parts';
 import { M } from './materials';
 import type { LabelSpec } from './labels';
 import type { PlanLayout } from '../sim/geometry';
-import { RANZA } from '../sim/dims';
+import { PIT_DEPTH, RANZA, Z, tr0 } from '../sim/dims';
 
 export interface Environment {
   group: THREE.Group;
@@ -20,7 +20,7 @@ export function buildEnvironment(lay: PlanLayout, labels: LabelSpec[]): Environm
   const pitX0 = lay.RK0 - 13.5;
   const pitX1 = lay.RK0 + RANZA.derinlikX + 13;
   const pitY = lay.sideCenterY(0) + 73.25;
-  const pitDepth = 36;
+  const pitDepth = PIT_DEPTH;
 
   const shape = new THREE.Shape();
   const fx0 = -480, fx1 = 1080, fy = 480;
@@ -46,11 +46,11 @@ export function buildEnvironment(lay: PlanLayout, labels: LabelSpec[]): Environm
   const pit = new THREE.Mesh(new THREE.BoxGeometry(pitX1 - pitX0, 2 * pitY, pitDepth), M.pit);
   pit.position.set((pitX0 + pitX1) / 2, 0, -pitDepth / 2);
   pit.receiveShadow = true;
-  pit.userData.info = { title: 'Kaldırıcı çukuru', detail: `Derinlik ${pitDepth} cm. Kaldırıcı en altta iken platform ve zincirler zeminle aynı hizada.` };
+  pit.userData.info = { title: 'Kaldırıcı çukuru', detail: `Derinlik ${pitDepth} cm. Hat 1 m'de olduğu için ranza son katlarda çukura iner; değişim zeminde yapılır. Kenar korkuluğu ve su tahliyesi (pis su çukuru) gerekecek.` };
   group.add(pit);
 
   // Ölçek: 1,75 m
-  const h = new Parts({ title: 'Ölçek: 1,75 m', detail: 'Boyut karşılaştırması için. Bant yüzeyi zeminden ~155 cm.' });
+  const h = new Parts({ title: 'Ölçek: 1,75 m', detail: `Boyut karşılaştırması için. Bant yüzeyi zeminden ${tr0(Z.hat)} cm.` });
   const hx = (lay.X_CUT + lay.X_BELT) / 2 - 12;
   const hy = -118;
   const body = new THREE.CapsuleGeometry(15, 112, 6, 14);

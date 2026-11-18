@@ -1,6 +1,9 @@
 // Yükseklikler ve parça ölçüleri (cm). CLAUDE.md'deki kararlar burada tek yerde; sahne de testler de
 // buradan okur. Plan yerleşimi (X, Y) için geometry.ts'ye bak.
 
+/** Tam sayıyı ya da ondalığı Türkçe yaz (95.3 → "95,3"). */
+export const tr0 = (v: number): string => String(Math.round(v * 10) / 10).replace('.', ',');
+
 export const TUGLA = { boy: 19, en: 13.5, yukseklik: 19, kutleKg: 3.5 } as const;
 
 export const RANZA = {
@@ -42,45 +45,60 @@ export const PLAKA = {
   profilAdet: 10,
 } as const;
 
-/** Plaka sabit yükseklikte. Aktif katın çıta üstü buraya gelir (ranza boşken kaldırma 120 cm). */
-export const AKTIF_CITA_Z = 150;
+/**
+ * Hattın taşıma yüzeyi (birikme bantları, ön hazırlık makaraları üstü) zeminden yüksekliği.
+ * Sahada pres ağzı / kesici tablası ~1 m (2026-11-18). Ölçülünce yalnızca bu sayı değişir.
+ */
+export const HAT_Z = 100;
 /** Pop-up bantlar çevredeki taşıma yüzeyinin bu kadar üstüne çıkar (3–5 mm). */
 export const POP_KALKIS = 0.4;
 /** Pop-up bantlar dinlenmede yüzeyin bu kadar altında bekler. */
 export const POP_INIS = 1.2;
 
 /**
- * Taşıma yüzeyi yükseklikleri. CLAUDE.md'de hat yüksekliği yok; plakanın sabit yüksekliğinden geriye
- * doğru türetildi: plaka üstü = tampon üstü = tablanın boyuna pop-up'ı kalkmış hali; her aktarmada
- * alan taraf veren taraftan 4 mm yukarıdan alır.
+ * Taşıma yüzeyi yükseklikleri. Her aktarmada alan taraf veren taraftan 4 mm yukarıdan alır:
+ * hat → pop-up / tabla enine → tabla boyuna (kalkık) = tampon = plaka üstü. Plaka sabit; aktif katın
+ * çıta üstü plakanın 5 mm altında. Hat 1 m'de olduğu için ranza kaldırıcı çukurda çalışır.
  */
 export const Z = (() => {
-  const plakaAlt = AKTIF_CITA_Z + PLAKA.citaBoslugu;
-  const plakaUst = plakaAlt + PLAKA.kalinlik;
-  const tablaEnine = plakaUst - POP_KALKIS;
-  const hat = tablaEnine - POP_KALKIS; // birikme bantları ve ön hazırlık makaraları üstü
+  const hat = HAT_Z;
+  const tablaEnine = hat + POP_KALKIS;
+  const plakaUst = tablaEnine + POP_KALKIS;
+  const plakaAlt = plakaUst - PLAKA.kalinlik;
   return {
-    aktifCita: AKTIF_CITA_Z,
-    plakaAlt,
-    plakaUst,
-    tampon: plakaUst,
-    tablaBoyunaUst: plakaUst,
-    tablaEnine,
-    popUst: tablaEnine,
     hat,
     popAlt: hat - POP_INIS,
+    popUst: tablaEnine,
+    tablaEnine,
     tablaBoyunaAlt: tablaEnine - POP_INIS,
+    tablaBoyunaUst: plakaUst,
+    tampon: plakaUst,
+    plakaUst,
+    plakaAlt,
+    aktifCita: plakaAlt - PLAKA.citaBoslugu,
   };
 })();
 
-/** Dolu kat sayısına göre ranza kaldırma yüksekliği: (4 − dolu) × 30. En alt kat önce. */
+/** Dolu kat sayısına göre ranza kaldırma: (4 − dolu) × 30, en alçak konuma göre. En alt kat önce. */
 export function rackLiftFor(filledLevels: number): number {
   return (RANZA.katSayisi - 1 - filledLevels) * RANZA.katArasi;
 }
 
-/** j. katın (0 = en alt) çıta üstü, verilen kaldırma yüksekliğinde. */
-export function slatTopZ(level: number, lift: number): number {
-  return lift + RANZA.ilkKat + level * RANZA.katArasi;
+/** Ranza ayağının zeminden yüksekliği (eksi = çukurda), dolu kat sayısına göre. */
+export function rackFeetZ(filledLevels: number): number {
+  return Z.aktifCita - RANZA.ilkKat - filledLevels * RANZA.katArasi;
+}
+
+/** Kaldırıcının en alçak konumunda ranza ayağı (son kat yüklenirken). */
+export const RACK_FEET_LOW = rackFeetZ(RANZA.katSayisi - 1);
+/** Ranza değişimi zeminde (AGV / zincirli konveyör seviyesi): en alçak konumdan bu kadar kalkık. */
+export const RACK_SWAP_LIFT = -RACK_FEET_LOW;
+/** Kaldırıcı çukuru derinliği: en alçakta ranza ayağı + platform (12 cm) + 10 cm pay. */
+export const PIT_DEPTH = Math.ceil(-RACK_FEET_LOW + 12 + 10);
+
+/** j. katın (0 = en alt) çıta üstü, ranza ayağı feetZ yüksekliğindeyken. */
+export function slatTopZ(level: number, feetZ: number): number {
+  return feetZ + RANZA.ilkKat + level * RANZA.katArasi;
 }
 
 /** Plakadaki tuğlanın üstü ile bir üst katın en alçak noktası (kat rayının alt yüzü) arası. */

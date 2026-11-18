@@ -37,32 +37,50 @@ Notlar:
 - Ranza: kat rayları L25×25×5, çıta (2 cm) rayın yatay koluna oturuyor, rayın üstü çıta üstüyle aynı hizada.
   Kullanılabilir yükseklik 28 cm; plakadaki tuğla ile üst katın rayı arası 3 cm. En üst kat 150 cm'de,
   yüklenirken tuğla tepesi 174,5 cm (zarf 180 içinde).
-- Ranza başta 120 cm kalkık (boş, en alt kat plaka hizasında). Kaldırıcı en altta iken platform zeminle aynı
-  hizada (36 cm'lik çukur). 4 kolonlu hidrolik, kolon / çene / pim yerleşimi şematik.
+- Ranza başta boş, en alt katı plaka hizasında. 4 kolonlu hidrolik kaldırıcı; kolon / çene / pim yerleşimi şematik.
+  (Çukur ve yükseklikler aşağıdaki revizyonla değişti.)
 - Plaka: 10 dik kutu profil + üst/alt bant = 5 cm, burun Ø20 mm, 2 lazer burunda. Kol, makara çifti, arka kiriş
   ve bant motoru plakanın arkasında; ranzaya hiçbir şey girmiyor. Bant motoru, plaka beklerken tamponun ön
   ucunun altında kalıyor.
-- Yükseklik zinciri (her aktarmada alan taraf 4 mm yukarıdan alıyor): birikme / ön hazırlık 154,7 → pop-up ve
-  tabla enine 155,1 → tabla boyuna (kalkık) = tampon = plaka üstü 155,5 cm.
+- Yükseklik zinciri (her aktarmada alan taraf 4 mm yukarıdan alıyor): birikme / ön hazırlık 100 → pop-up ve
+  tabla enine 100,4 → tabla boyuna (kalkık) = tampon = plaka üstü 100,8 cm; aktif kat çıtası 95,3 cm.
 - Şematik bırakılanlar (CLAUDE.md'de ayrıntı yok): pres gövdesi, A/B tablasında enine / boyuna bantların
   kesişmesi (boyuna bantlar sürekli, enine bantlar parçalı), artık itici kolları (köprüden sarkıyor, şerit
   aralarında bekliyor), kaldırıcı kolonları.
 
-Açık sorular (cevaba göre değişecek):
-1. **Hat yüksekliği** CLAUDE.md'de yok. Plaka sabit ve boş ranza 120 cm kalkıyor; kaldırıcı en altta zeminde
-   dersek aktif kat 150 cm'de, bant yüzeyi ~155 cm çıkıyor (pres ağzı da o yükseklikte). Gerçek pres ağzı
-   ~1 m ise ya ranza kaldırıcı daha derin bir çukurda çalışmalı ya da hatta bir yerde seviye farkı olmalı.
-2. **Plakanın ileri-geri tahriki** (97 cm strok, 50 cm/s) neyle? Kremayer, zincir, vidalı mil? Şimdilik yok.
-3. **Ranza giriş / çıkış yönü** ve 3 boş + 3 dolu tampon yerleşimi (Aşama 3). 2D'deki gibi ±Y dışa doğru
-   (A için +Y) varsaydım; zincirli konveyör de o yönde.
-4. Akış yönüne bakan biri için A tarafı (+Y) solda kalıyor. Sahada da öyle mi?
+Revizyon (2026-11-18, kullanıcıyla):
+- [x] Hat yüksekliği ~1 m (`HAT_Z` tek sayı). Hatta seviye farkı yok; ranza kaldırıcı ~77 cm'lik çukurda.
+  Ranza ayağı boşken +65,3 cm, son katta −54,7 cm. Plakanın arkasındaki parçalar artık plaka altına göre konumlu.
+- [x] Plaka ileri-geri tahriki: rayların dışında birer zincir, tamponun altından geçen ortak mil, tek servo.
+- [ ] Ranza giriş / çıkış akışı: yeni tasarım (boşlar ortadan, dolular arkadan) onay bekliyor. Ortadan besleme için
+  iki ranza arasında en az ~1,4 m gerekiyor (şu an 40 cm): tabla / tampon / plaka 50'şer cm dışa kayar.
+- A tarafı (+Y) akışa bakana göre solda. Hat simetrik, yalnızca isim; artık Ş1 (−Y, B tarafı) 9,5 cm, Ş3 (+Y) 5,5 cm.
 
-## Aşama 2 — Simülasyon mantığı
-- [ ] `referans-2d-simulasyon.html` içindeki `step()` mantığını TS modülüne taşı (aynı parametreler, aynı sonuçlar).
-- [ ] Node'da çalışan testler: 240/dk'da 10 dk → 0 temas, 0 taşma; 360/dk → taşma; tek parça bant → temas > 0.
-- [ ] 2D ile 3D mantık sonuçlarını karşılaştıran test.
+## Aşama 2 — Simülasyon mantığı ✅ (2026-11-18)
+- [x] `referans-2d-simulasyon.html` içindeki `step()` mantığını TS modülüne taşı (aynı parametreler, aynı sonuçlar).
+- [x] Node'da çalışan testler: 240/dk'da 10 dk → 0 temas, 0 taşma; 360/dk → taşma; tek parça bant → temas > 0.
+- [x] 2D ile 3D mantık sonuçlarını karşılaştıran test.
+
+Notlar:
+- `src/sim/model.ts`: reset / tableAccepts / chooseSide / step birebir port, işlem sırası aynı. Tuğlalara çizim için
+  kalıcı `id` eklendi; bloktaki tuğlanın `cy`'si 3D Y'sinde. Başka fark yok.
+- `test/ref2d.ts`, 2D dosyasındaki asıl `step()`'i Node'da çalıştırıyor. `test/sim.test.ts` iki simülasyonu her
+  5 s'de tüm durum (tuğla konumları dahil) üzerinden karşılaştırıyor: varsayılan 4 dk, tek parça bant 300/dk,
+  %20 uyumsuz ranza + 2 araç, 360/dk. Hepsi bit bit aynı.
+- Doğrulananlar: 240/dk'da 10 dk 0 temas / 0 kayma / 0 taşma, blok ortalaması 3,0 s, ~10 kat/dk, ön hazırlık tablayı
+  hiç beklemiyor; 330/dk'da taşma yok; 360/dk'da taşma var.
+- 2D'nin kendisinde görülen iki şey (port hatası değil):
+  1. 240/dk'da kuyruk 1 tuğlayı geçmiyor; tek parça bantta da temas olmuyor. Fark kuyruk oluşunca çıkıyor:
+     300/dk'da bölgeli bantta 0, tek parça bantta 10 dk'da yüzlerce temas. CLAUDE.md'deki "aynı koşulda yüzlerce
+     temas" cümlesi buna göre düzeltilmeli (sorulacak).
+  2. Varsayılanlarda plaka zamanın ~%5,8'inde ranza bekliyor (değişim 6 s + 120 cm kaldırma 6 s). 2D'nin uyarı eşiği
+     %5 olduğu için ~5. dakikadan sonra "ranza bekliyor" uyarısı veriyor; üretim etkilenmiyor (tabla bekleme %0).
+- Çukurlu kaldırıcıda değişim sırası farklı (dolu ranza önce zemine kalkar), toplam süre aynı. Mantıkta 2D sırası
+  korunuyor; Aşama 3'te görselde çukur sırasıyla gösterilecek.
+- Üst şeritte canlı sayaç: üretim/dk, temas, taşan, kat, ranza.
 
 ## Aşama 3 — Hareketli 3D
+(Ranza değişimi ve AGV maddesi, ranza giriş / çıkış akışı kararından sonra.)
 - [ ] Tuğlalar InstancedMesh; artık parçaları ayrı renk.
 - [ ] Bölge bantlarının dönüşü (doku kaydırma), dozaj/ön hazırlık senkron indeksleme.
 - [ ] Pop-up çerçevenin kalkıp inmesi, bloğun A/B'ye gidişi.
@@ -78,3 +96,12 @@ Açık sorular (cevaba göre değişecek):
 - [ ] Plaka sehimi ve kat yüksekliği boşluğu görselleştirmesi (plaka ile üst kat çıtası arası mm).
 - [ ] Dik çıtalı ranzada tuğla düşmesi senaryosu (görsel uyarı + red).
 - [ ] Makara çifti kuvvetleri (yük ağırlık merkezi ve kol uzunluğuna göre) panelde.
+
+## Aşama 6 — İkinci ürün: yığma tuğla (29 × 13,5 × 19)
+Tasarım açık; aşağıdakiler konuşulmadan başlanmayacak.
+- [ ] Diziliş deseni: önde ve arkada 29'luk kenar X yönünde 6'şar tuğla, ortada 13,5'luk yatay sıra (29 Y yönünde) 3 tuğla
+  → kat başına 15 tuğla, derinlik 29 + 13,5 + 29 = 71,5 cm (+ aralıklar), en ≈ 96 cm. Doğru mu?
+- [ ] Bantla çıkış yönü 13,5 X × 29 Y: orta sıra olduğu gibi, ön ve arka sıralar 90° dönmeli (tek tek ya da 6'lı grup).
+- [ ] 2 sütun × 29 cm + aralık ≈ 61 cm; 3 şeritlik bölgeli bant 47 cm. Şerit bantları 29'luk tuğlayı iki banda bindirir
+  → bant düzeni / bölge eşlemesi değişmeli.
+- [ ] Kesim: 152 cm'lik tablada sütun başına 11 tuğla (148,5 cm), kesim başına 22 tuğla; kat 15 tuğla (kesim ≠ kat).

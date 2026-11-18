@@ -1,6 +1,8 @@
 // Kumanda rafı: oynat/durdur, sıfırla, hız, kamera açıları, etiket ve çıta tipi düğmeleri, parça kartı.
 
 import { DT, type SimLoop } from '../sim/loop';
+import type { Simulation } from '../sim/sim';
+import { summarize } from '../sim/stats';
 import { CAMS, CAM_LABELS, type CamName } from '../scene/cameras';
 import type { Viewer } from '../scene/viewer';
 import type { SlatType } from '../scene/rack';
@@ -14,7 +16,7 @@ const fmtTime = (t: number) => {
 };
 const fmtInt = (n: number) => n.toLocaleString('tr-TR');
 
-export function initPanel(loop: SimLoop, viewer: Viewer) {
+export function initPanel(loop: SimLoop, viewer: Viewer, sim: Simulation) {
   const bPlay = $<HTMLButtonElement>('bPlay');
   const syncPlay = () => {
     bPlay.textContent = loop.running ? 'Durdur' : 'Oynat';
@@ -101,6 +103,8 @@ export function initPanel(loop: SimLoop, viewer: Viewer) {
 
   const simTime = $('simTime');
   const simSteps = $('simSteps');
+  const simStats = $('simStats');
+  const simStats2 = $('simStats2');
   let lastShown = -1;
   return {
     update() {
@@ -108,6 +112,10 @@ export function initPanel(loop: SimLoop, viewer: Viewer) {
       lastShown = loop.steps;
       simTime.textContent = fmtTime(loop.simTime);
       simSteps.textContent = `${fmtInt(loop.steps)} adım × ${DT * 1000} ms`;
+      const s = summarize(sim.S);
+      simStats.textContent = `${s.perMin === null ? '–' : Math.round(s.perMin)}/dk · temas ${s.contacts} · taşan ${s.lost}`;
+      simStats2.textContent = `kat ${s.levels} · ranza ${s.racks}${s.anomaly ? ' · ⚠ hata' : ''}`;
+      simStats.classList.toggle('bad', s.contacts > 0 || s.lost > 0);
     },
   };
 }
