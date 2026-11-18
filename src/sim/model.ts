@@ -3,7 +3,8 @@
 // bit bit aynı çıksın (test/sim.test.ts 2D'nin kendisiyle adım adım karşılaştırıyor).
 // Burada değişiklik yaparsan önce 2D'de doğrula, sonra buraya taşı.
 //
-// Tek fark: tuğlalara çizim için kalıcı `id` verildi; blok halindeki tuğlanın `cy` değeri 3D Y'sinde.
+// Farklar yalnızca çizim için: tuğlalara kalıcı `id`, blok halindeki tuğlanın `cy` değeri 3D Y'sinde,
+// istasyonda `outQ` (çıkıştaki ranzalar) ve araçta `cargo` notları. Hiçbiri sonuçları değiştirmez.
 
 import type { Params } from './params';
 import type { PlanLayout, Side } from './geometry';
@@ -112,6 +113,8 @@ export interface Station {
   rackWait: number;
   loadBusy: number;
   loaded: number;
+  /** Not (mantığı etkilemez, çizim için): çıkış tamponundaki ranzalar, eskiden yeniye; true = reddedilmiş boş ranza */
+  outQ: boolean[];
 }
 
 export interface Vehicle {
@@ -120,6 +123,8 @@ export interface Vehicle {
   to: number;
   bring: boolean;
   busyT: number;
+  /** Not (mantığı etkilemez, çizim için): bu seferde aldığı ranza */
+  cargo: 'full' | 'reject' | null;
 }
 
 export interface SimState {
@@ -164,7 +169,7 @@ function mkSide(P: Readonly<Params>): Station {
     groups: [],
     plate: { phase: 'ready', px: 0, level: null, belt: 0 },
     rack: { levels: 0, lift: 120, target: 120, phase: 'ok', timer: 0, bricks: [], reject: false },
-    empty: P.inCap, full: 0, incoming: 0, racks: 0, rejected: 0, starve: 0, rackWait: 0, loadBusy: 0, loaded: 0,
+    empty: P.inCap, full: 0, incoming: 0, racks: 0, rejected: 0, starve: 0, rackWait: 0, loadBusy: 0, loaded: 0, outQ: [],
   };
 }
 
@@ -175,7 +180,7 @@ export function createState(P: Readonly<Params>, G: PlanLayout): SimState {
     zone: { phase: 'fill', timer: 0, block: null }, blocks: [],
     tables: [0, 1].map(() => ({ halves: [null, null] as [Brick[] | null, Brick[] | null], next: 0, exiting: null })),
     sides: [mkSide(P), mkSide(P)], pref: 0,
-    veh: Array.from({ length: P.nVeh }, () => ({ busy: false, timer: 0, to: 0, bring: false, busyT: 0 })), tripsV: 0,
+    veh: Array.from({ length: P.nVeh }, () => ({ busy: false, timer: 0, to: 0, bring: false, busyT: 0, cargo: null as Vehicle['cargo'] })), tripsV: 0,
     anomaly: null, rng: 12345, scrapPushed: 0, midScrap: 0, levels: 0, wFill: 0, wTable: 0, blockTimes: [], lastBlock: null,
     q: [0, 0, 0], qmax: [0, 0, 0], cam: [0, 0, 0], lastCut: -99, blockDir: [0, 0], nextId: 1,
   };
@@ -522,6 +527,7 @@ export function step(S: SimState, P: Readonly<Params>, G: PlanLayout, dt: number
       if (rk.timer <= 0) {
         sd.empty--;
         sd.full++;
+        sd.outQ.push(rk.reject);
         if (!rk.reject) sd.racks++;
         rk.levels = 0;
         rk.lift = 0;
@@ -567,7 +573,10 @@ export function step(S: SimState, P: Readonly<Params>, G: PlanLayout, dt: number
         v.timer = P.tripT;
         v.to = best;
         S.tripsV++;
-        if (sd.full > 0) sd.full--;
+        if (sd.full > 0) {
+          sd.full--;
+          v.cargo = sd.outQ.shift() ? 'reject' : 'full';
+        } else v.cargo = null;
         v.bring = sd.empty + sd.incoming < P.inCap;
         if (v.bring) sd.incoming++;
       }

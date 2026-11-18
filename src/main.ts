@@ -6,7 +6,7 @@ import { initPanel } from './ui/panel';
 
 const sim = new Simulation();
 const loop = new SimLoop(sim);
-const viewer = createViewer(document.getElementById('view')!, sim.layout, sim.params);
+const viewer = createViewer(document.getElementById('view')!, sim);
 const panel = initPanel(loop, viewer, sim);
 
 let last = performance.now();

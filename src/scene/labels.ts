@@ -4,4 +4,6 @@ import type { V3 } from './parts';
 export interface LabelSpec {
   text: string;
   pos: V3;
+  /** Hareket katmanı yazıyı bu anahtarla günceller */
+  key?: string;
 }

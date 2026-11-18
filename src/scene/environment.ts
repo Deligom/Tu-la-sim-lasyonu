@@ -23,7 +23,7 @@ export function buildEnvironment(lay: PlanLayout, labels: LabelSpec[]): Environm
   const pitDepth = PIT_DEPTH;
 
   const shape = new THREE.Shape();
-  const fx0 = -480, fx1 = 1320, fy = 520;
+  const fx0 = -520, fx1 = 1760, fy = 540;
   shape.moveTo(fx0, -fy).lineTo(fx1, -fy).lineTo(fx1, fy).lineTo(fx0, fy).closePath();
   const hole = new THREE.Path();
   hole.moveTo(pitX0, -pitY).lineTo(pitX0, pitY).lineTo(pitX1, pitY).lineTo(pitX1, -pitY).closePath();

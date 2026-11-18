@@ -85,9 +85,10 @@ export function camPose(name: CamName, lay: PlanLayout, vb: ViewBox): CamPose {
       return fit(v(cx, c, Z.hat - 10), v(-0.06, s, 0.12), 180, 150, 30, vb, 60);
     }
     case 'ranzaIci': {
-      // A ranzasının içinde, aktif katın (en alt kat, plaka hizası) çıtalarının 10 cm üstünde, plakaya doğru bakış.
-      const x = lay.RK0 + RANZA.derinlikX - 5;
-      return { pos: v(x, cA + 18, Z.aktifCita + 10), target: v(lay.RK0 - 70, cA - 4, Z.aktifCita + 6), fov: portrait ? 80 : 68, near: 0.5 };
+      // A ranzasının içinde, tuğla tepeleriyle üst kat arasındaki boşluktan, tuğlalarla yan çerçeve arasındaki
+      // ~11 cm'lik koridorun üstünden plakaya doğru bakış. Plakanın kenarı, çıta boşluğu ve burundan iniş buradan görünür.
+      const x = lay.RK0 + RANZA.derinlikX - 6;
+      return { pos: v(x, cA + 54, Z.aktifCita + 24), target: v(lay.RK0 + 18, cA + 34, Z.aktifCita + 2), fov: portrait ? 85 : 72, near: 0.5 };
     }
   }
 }

@@ -294,7 +294,7 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
   labels.push({ text: `${name} tablası`, pos: [(tx0 + tx1) / 2, c, zr + 26] });
   if (lay.BL > 0) labels.push({ text: `Tampon ${name}`, pos: [lay.BUF0 + lay.BL / 2 - 10, c, zr + 26] });
   labels.push({ text: `Plaka ${name}`, pos: [R0 + PLAKA.boy / 2, c, zr + 30] });
-  labels.push({ text: `Ranza ${name} · boş`, pos: [(rx0 + rx1) / 2, c, rackFeetZ(0) + RANZA.cerceveYuk + 26] });
+  labels.push({ text: `Ranza ${name} · boş`, pos: [(rx0 + rx1) / 2, c, rackFeetZ(0) + RANZA.cerceveYuk + 26], key: `rack${side}` });
 
   return { group, handles: { side, tablePopup, plate, chains, rack, lifter } };
 }

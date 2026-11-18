@@ -82,13 +82,39 @@ Notlar:
   korunuyor; Aşama 3'te görselde çukur sırasıyla gösterilecek.
 - Üst şeritte canlı sayaç: üretim/dk, temas, taşan, kat, ranza.
 
-## Aşama 3 — Hareketli 3D
-(Ranza değişimi: dolu ranza zemine kalkar → X zincirleriyle ileri çıkar → boş ranza yandan içe gelir → ilk kata kalkar.)
-- [ ] Tuğlalar InstancedMesh; artık parçaları ayrı renk.
-- [ ] Bölge bantlarının dönüşü (doku kaydırma), dozaj/ön hazırlık senkron indeksleme.
-- [ ] Pop-up çerçevenin kalkıp inmesi, bloğun A/B'ye gidişi.
-- [ ] Plaka: giriş, geri çekilirken bant sarma, burun makarasından tuğlanın inişi; yan kollar ve makaralar.
-- [ ] Ranza kaldırıcı, ranza değişimi, AGV'ler (basit kutu modeller yeterli).
+## Aşama 3 — Hareketli 3D ✅ (2026-11-18)
+- [x] Tuğlalar InstancedMesh; artık parçaları ayrı renk.
+- [x] Bölge bantlarının dönüşü (doku kaydırma), dozaj/ön hazırlık senkron indeksleme.
+- [x] Pop-up çerçevenin kalkıp inmesi, bloğun A/B'ye gidişi.
+- [x] Plaka: giriş, geri çekilirken bant sarma, burun makarasından tuğlanın inişi; yan kollar ve makaralar.
+- [x] Ranza kaldırıcı, ranza değişimi, AGV'ler (basit kutu modeller yeterli).
+
+Notlar:
+- `src/scene/motion.ts`: mantık yok, yalnızca `SimState` okunur. Simülasyon ilerlemezse çizim de yapılmaz.
+- Tuğlalar tek InstancedMesh (≤ 2600): sütunlar, hat, plaka, ranzalar, çıkış tamponu, AGV üstü. Kesim yüzünde delik
+  deseni, yanlarda ekstrüzyon çizgisi. Şerit tonları hafif farklı; artık kırmızı, ortadaki artık ve temas parlak kırmızı.
+- Bant parçaları bölge dönüyorsa kayıyor; uç sensörü lambası yeşil / kırmızı. Tampon bandı kat ilerledikçe, plaka bandı
+  geri çekilirken sarıyor (doku zemine göre duruyor).
+- Pop-up (0,2 s kalkış / iniş), tabla boyuna pop-up'ı kat çıkarken kalkık, kapaklar 0,3 s'de iniyor, artık itici kolu
+  artığı dışa itiyor, artık oluktan dönüş bandına kayıyor, tel demeti kesimde iniyor.
+- Ranzadaki eski katlar mantıkta tutulmuyor (2D yalnızca son katı tutuyor); çizimde kat deseni 2D'nin plaka hesabından
+  türetiliyor (tabla → tampon ucu → +97 cm), dolu kat sayısıyla çiziliyor. Konumlar son katla birebir aynı.
+- Ranza değişimi çukur sırasıyla (`src/sim/swapview.ts`, testli): dolu ranza zemine kalkar → çıkış konveyörüne ileri
+  gider → girişteki öndeki boş ranza aktarma yerine ilerler, yandan içe kaldırıcıya kayar → ilk kata kalkar. Pencere
+  süresi mantıkla aynı (6 s + 6 s). Reddedilen ranza dik çıtalı görünür ve boş çıkar.
+- Modele iki çizim notu eklendi (`outQ`, `cargo`); 2D karşılaştırma testleri hâlâ bit bit aynı.
+- AGV: 3 adet, dış koridordan: çıkışın ucundan dolu ranzayı alır, kurutmaya (sahne dışı, +X) bırakır, boş ranza
+  deposundan (pres tarafı) boş alır, girişin başına bırakır, park yerine döner. 60 s'lik sefer yol uzunluğuna bölünüyor.
+- "Ranza içi" kamerası tuğla tepeleriyle üst kat arasından, yan koridorun üstünden bakıyor (dolu katta tuğlaların
+  içine düşmesin diye).
+
+Bulgu (Aşama 5'te ele alınacak): **burundan iniş 5,5 cm.** Tuğla plakanın üstünde (plaka 5 cm + 5 mm boşluk), çıta
+5,5 cm aşağıda. Ağırlık merkezi burnu geçince tuğla öne devriliyor: ön kenar çıtaya oturuyor, eğim ~35°'den başlayıp
+arka kenar burundan çıkana kadar ~17°'ye iniyor, sonra arka kenar 5,5 cm düşüyor. Görseldeki devrilme basit katı cisim
+yaklaşımı.
+
+Basitleştirmeler: ön hazırlık makaraları ve pop-up bantları dönmüyor (tuğla hareketi gösteriyor); AGV'nin girişe
+bıraktığı boş ranza kuyruğa atlıyor (konveyörde yürümüyor); AGV'ler aynı koridoru paylaşıyor, üst üste binebilir.
 
 ## Aşama 4 — Arayüz
 - [ ] Parametre paneli (2D'deki sürgüler), istatistik kartları, darboğaz göstergesi, şerit teşhis satırı.

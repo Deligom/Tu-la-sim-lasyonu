@@ -5,12 +5,12 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { buildPlant, type Plant } from './plant';
+import { createMotion } from './motion';
 import { addLights, buildEnvironment } from './environment';
 import { camPose, type CamName, type CamPose, type ViewBox } from './cameras';
 import type { PartInfo } from './parts';
 import type { SlatType } from './rack';
-import type { PlanLayout } from '../sim/geometry';
-import type { Params } from '../sim/params';
+import type { Simulation } from '../sim/sim';
 
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
 
@@ -25,13 +25,16 @@ export interface Viewer {
   onPick(cb: (info: PartInfo | null) => void): void;
   onCameraChange(cb: (name: CamName | null) => void): void;
   clearSelection(): void;
+  /** Her karede: simülasyon ilerlediyse sahneyi güncelle, gerekiyorsa çiz. */
   frame(now: number): void;
   requestRender(): void;
 }
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
-export function createViewer(host: HTMLElement, lay: PlanLayout, params: Readonly<Params>): Viewer {
+export function createViewer(host: HTMLElement, sim: Simulation): Viewer {
+  const lay = sim.layout;
+  const params = sim.params;
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true;
@@ -57,11 +60,14 @@ export function createViewer(host: HTMLElement, lay: PlanLayout, params: Readonl
   const env = buildEnvironment(lay, plant.labels);
   scene.add(env.group);
   const sun = addLights(scene, new THREE.Vector3(330, 0, 0));
+  const motion = createMotion(plant, lay, params, scene);
 
+  const labelDivs = new Map<string, HTMLDivElement>();
   const labelObjs = plant.labels.map((l) => {
     const div = document.createElement('div');
     div.className = 'lbl';
     div.textContent = l.text;
+    if (l.key) labelDivs.set(l.key, div);
     const o = new CSS2DObject(div);
     o.position.set(...l.pos);
     scene.add(o);
@@ -203,7 +209,8 @@ export function createViewer(host: HTMLElement, lay: PlanLayout, params: Readonl
     if (moved > 6 || !quick) return;
     const r = el.getBoundingClientRect();
     ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
-    for (const h of ray.intersectObjects([plant.root, env.group], true)) {
+    motion.prepPick();
+    for (const h of ray.intersectObjects([plant.root, ...motion.pickables, env.group], true)) {
       if (!shown(h.object)) continue;
       let o: THREE.Object3D | null = h.object;
       while (o && !o.userData.info) o = o.parent;
@@ -232,7 +239,7 @@ export function createViewer(host: HTMLElement, lay: PlanLayout, params: Readonl
       requestRender();
     },
     setSlatType(t) {
-      for (const st of plant.stations) st.rack.setSlatType(t);
+      motion.setDefaultSlat(t);
       if (picked) select(picked);
       requestRender();
     },
@@ -247,6 +254,13 @@ export function createViewer(host: HTMLElement, lay: PlanLayout, params: Readonl
     },
     requestRender,
     frame(now) {
+      if (motion.update(sim.S)) {
+        needsRender = true;
+        for (const [k, text] of motion.labelTexts()) {
+          const d = labelDivs.get(k);
+          if (d && d.textContent !== text) d.textContent = text;
+        }
+      }
       if (tween) {
         const k = Math.min(1, (now - tween.t0) / tween.dur);
         const e = ease(k);
