@@ -16,7 +16,13 @@ export interface RackModel {
   setSlatType(t: SlatType): void;
 }
 
-export function buildRack(name: string): RackModel {
+export interface RackMats {
+  rack: THREE.Material;
+  wood: THREE.Material;
+  woodDark: THREE.Material;
+}
+
+export function buildRack(name: string, mats: RackMats = { rack: M.rack, wood: M.wood, woodDark: M.woodDark }): RackModel {
   const D = RANZA.derinlikX;
   const B = RANZA.boyY;
   const a = RANZA.dikmeKenar;
@@ -39,26 +45,26 @@ export function buildRack(name: string): RackModel {
   // dikmeler L40×40×5, kanatları dış yüzlerde
   for (const [cx, sx] of [[0, 1], [D, -1]] as const) {
     for (const [cy, sy] of [[0, 1], [B, -1]] as const) {
-      frame.box(M.rack, cx, cx + sx * a, cy, cy + sy * t, 0, RANZA.cerceveYuk);
-      frame.box(M.rack, cx, cx + sx * t, cy, cy + sy * a, 0, RANZA.cerceveYuk);
+      frame.box(mats.rack, cx, cx + sx * a, cy, cy + sy * t, 0, RANZA.cerceveYuk);
+      frame.box(mats.rack, cx, cx + sx * t, cy, cy + sy * a, 0, RANZA.cerceveYuk);
     }
   }
   // kat rayları
   for (const zt of levels) {
     const zb = zt - r;
     for (const [x, s] of [[0, 1], [D, -1]] as const) {
-      frame.box(M.rack, x, x + s * t, 0, B, zb, zt);
-      frame.box(M.rack, x, x + s * r, 0, B, zb, zb + t);
+      frame.box(mats.rack, x, x + s * t, 0, B, zb, zt);
+      frame.box(mats.rack, x, x + s * r, 0, B, zb, zb + t);
     }
     for (const [y, s] of [[0, 1], [B, -1]] as const) {
-      frame.box(M.rack, 0, D, y, y + s * t, zb, zt);
-      frame.box(M.rack, 0, D, y, y + s * r, zb, zb + t);
+      frame.box(mats.rack, 0, D, y, y + s * t, zb, zt);
+      frame.box(mats.rack, 0, D, y, y + s * r, zb, zb + t);
     }
   }
   // alt köşe destekleri (uzun yüzlerde: plaka giriş yüzü ve arka yüz)
   const z0 = levels[0] - r;
   for (const x of [t / 2 + 0.4, D - t / 2 - 0.4]) {
-    for (const [y0, s] of [[a, 1], [B - a, -1]] as const) frame.strut(M.rack, [x, y0, 2], [x, y0 + s * 22, z0], 1.6);
+    for (const [y0, s] of [[a, 1], [B - a, -1]] as const) frame.strut(mats.rack, [x, y0, 2], [x, y0 + s * 22, z0], 1.6);
   }
 
   const paralel = new Parts(baseInfo('paralel'));
@@ -68,13 +74,13 @@ export function buildRack(name: string): RackModel {
     const pitchP = (B - 2 - wP) / (nP - 1);
     for (let k = 0; k < nP; k++) {
       const y0 = 1 + k * pitchP;
-      paralel.box(k % 3 === 1 ? M.woodDark : M.wood, t, D - t, y0, y0 + wP, zt - ct, zt);
+      paralel.box(k % 3 === 1 ? mats.woodDark : mats.wood, t, D - t, y0, y0 + wP, zt - ct, zt);
     }
     const nD = RANZA.dik.adet, wD = RANZA.dik.en;
     const pitchD = (D - 2 - wD) / (nD - 1);
     for (let k = 0; k < nD; k++) {
       const x0 = 1 + k * pitchD;
-      dik.box(k % 3 === 1 ? M.woodDark : M.wood, x0, x0 + wD, t, B - t, zt - ct, zt);
+      dik.box(k % 3 === 1 ? mats.woodDark : mats.wood, x0, x0 + wD, t, B - t, zt - ct, zt);
     }
   });
 

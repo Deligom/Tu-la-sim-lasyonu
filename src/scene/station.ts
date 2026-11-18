@@ -9,7 +9,7 @@ import type { LabelSpec } from './labels';
 import { buildRack, type RackModel } from './rack';
 import { popupBandX, tableColumnY, type PlanLayout, type Side } from '../sim/geometry';
 import type { Params } from '../sim/params';
-import { PIT_DEPTH, PLAKA, RANZA, Z, rackFeetZ } from '../sim/dims';
+import { PIT_DEPTH, PLAKA, RANZA, RANZA_AKIS, Z, rackFeetZ } from '../sim/dims';
 
 export interface LifterModel {
   platform: THREE.Group;
@@ -224,7 +224,8 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
     title: `${name} ranza kaldırıcı`,
     detail: `Hidrolik, ${p.liftSpeed} cm/s, ${PIT_DEPTH} cm'lik çukurda. Plaka sabit; kaldırıcı ranzanın sıradaki katını plaka hizasına getirir. ` +
       `En alt kat önce: kaldırma = (4 − dolu kat) × 30 cm. Ranza ayağı boşken +${tr(rackFeetZ(0))} cm, son katta ${tr(rackFeetZ(4))} cm (çukurda). ` +
-      'Değişim zeminde: dolu ranza zemine kalkar, boşu zeminden alır. Zincirli konveyör, pnömatik durdurma pimi (sarı), ' +
+      'Değişim zeminde: dolu ranza zemine kalkar ve X zincirleriyle düz ileri çıkar, boş ranza dıştaki giriş konveyöründen ' +
+      'Y zincirleriyle yandan içe gelir (çapraz aktarma: bir zincir takımı 1 cm kalkıp devralır). Pnömatik durdurma pimi (sarı, iç uçta), ' +
       'iki yandan senkron kendinden merkezli çene. Kolon / silindir düzeni şematik.',
   };
   const lf = new Parts(lfInfo);
@@ -236,12 +237,19 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
     pf.box(M.lifter, pf0[0], pb0[1], c + v * 60.5, c + v * 64, CROSS_BOTTOM, -4);
     for (const [a, b] of [pf0, pb0]) pf.box(M.steelDark, a - 1, b + 1, c + v * 63.5, c + v * 72.6, CROSS_BOTTOM - 1, -3);
   }
+  // Y zincirleri (boş giriş, dıştan içe): dış uçları giriş konveyörüne değer
   for (const x of [rx0, rx1 - 8]) {
-    pf.box(M.lifter, x, x + 8, c - 60.5, c + 60.5, -4, -0.6);
-    pf.box(M.chain, x + 2.5, x + 5.5, c - 60.5, c + 60.5, -0.6, 0);
-    for (const v of [-1, 1]) pf.cyl(M.chain, 'x', x + 4, c + v * 58.5, -2, 2, 4, 12);
+    pf.box(M.lifter, x, x + 8, out(-60.5), out(RANZA_AKIS.zincirDis), -4, -0.6);
+    pf.box(M.chain, x + 2.5, x + 5.5, out(-60.5), out(RANZA_AKIS.zincirDis), -0.6, 0);
+    for (const yy of [out(-58.5), out(RANZA_AKIS.zincirDis - 2)]) pf.cyl(M.chain, 'x', x + 4, yy, -2, 2, 4, 12);
   }
-  pf.box(M.motor, rx0 + 2, rx0 + 14, out(64), out(71), -11, -3);
+  // X zincirleri (dolu çıkış, +X): ranza ayaklarının altında, çukurun arka kenarına kadar
+  const pitX1 = rx1 + RANZA_AKIS.cukurArka;
+  for (const v of [-1, 1]) {
+    pf.box(M.lifter, rx0, pitX1 - 0.5, c + v * 56.5, c + v * 59.5, -4, -0.9);
+    pf.box(M.chain, rx0, pitX1 - 0.5, c + v * 57.2, c + v * 58.8, -0.9, -0.3);
+  }
+  pf.box(M.motor, rx0 + 12, rx0 + 24, out(64), out(71), -11, -3);
   for (const v of [-1, 1]) {
     pf.box(M.pneu, rx0 - 4, rx0 - 0.3, c + v * 53, c + v * 59, 0, 7);
     pf.box(M.pneu, rx1 + 0.3, rx1 + 4, c + v * 53, c + v * 59, 0, 7);

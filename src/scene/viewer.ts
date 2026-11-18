@@ -73,6 +73,14 @@ export function createViewer(host: HTMLElement, lay: PlanLayout, params: Readonl
   const syncLabels = () => {
     const vis = labelsOn && current !== 'ranzaIci';
     for (const o of labelObjs) o.visible = vis;
+    // Yan görünümde girişte bekleyen boş ranzalar istasyonun önünü kapatıyor: saydamlaştır.
+    const ghost = current === 'aYan' || current === 'bYan';
+    for (const m of plant.waitingMats) {
+      m.transparent = ghost;
+      m.opacity = ghost ? 0.12 : 1;
+      m.depthWrite = !ghost;
+      m.needsUpdate = true;
+    }
   };
 
   let needsRender = true;

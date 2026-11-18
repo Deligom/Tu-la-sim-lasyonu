@@ -5,7 +5,7 @@ import { Parts } from './parts';
 import { M } from './materials';
 import type { LabelSpec } from './labels';
 import type { PlanLayout } from '../sim/geometry';
-import { PIT_DEPTH, RANZA, Z, tr0 } from '../sim/dims';
+import { PIT_DEPTH, RANZA, RANZA_AKIS, Z, tr0 } from '../sim/dims';
 
 export interface Environment {
   group: THREE.Group;
@@ -17,13 +17,13 @@ export function buildEnvironment(lay: PlanLayout, labels: LabelSpec[]): Environm
   group.name = 'Zemin';
 
   // Kaldırıcı çukuru: iki istasyonun kolonları ve platformları burada. Kaldırma 0'da platform zeminle aynı hizada.
-  const pitX0 = lay.RK0 - 13.5;
-  const pitX1 = lay.RK0 + RANZA.derinlikX + 13;
-  const pitY = lay.sideCenterY(0) + 73.25;
+  const pitX0 = lay.RK0 - RANZA_AKIS.cukurOn;
+  const pitX1 = lay.RK0 + RANZA.derinlikX + RANZA_AKIS.cukurArka;
+  const pitY = lay.sideCenterY(0) + RANZA_AKIS.cukurDis;
   const pitDepth = PIT_DEPTH;
 
   const shape = new THREE.Shape();
-  const fx0 = -480, fx1 = 1080, fy = 480;
+  const fx0 = -480, fx1 = 1320, fy = 520;
   shape.moveTo(fx0, -fy).lineTo(fx1, -fy).lineTo(fx1, fy).lineTo(fx0, fy).closePath();
   const hole = new THREE.Path();
   hole.moveTo(pitX0, -pitY).lineTo(pitX0, pitY).lineTo(pitX1, pitY).lineTo(pitX1, -pitY).closePath();

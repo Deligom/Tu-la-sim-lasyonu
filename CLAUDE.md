@@ -73,17 +73,22 @@ referansı o dosyadaki `step()` fonksiyonudur; 3D sürüm aynı sonuçları verm
     Her kattan önce plaka ucundaki 2 lazer mesafe sensörü çıta yüksekliğini ve eğimi ölçer.
 15. **Ranza değişimi ve taşıma:** değişim 6 s; istasyon başına 3 boş giriş + 3 dolu çıkış tamponu.
     ~120 ranza/saat (iki istasyon toplam). 3 AGV (kaldırmalı, ranzanın altına girer), 60 s tur.
+    **Akış (2026-11-18):** yükleme istasyonu (tabla → tampon → plaka → ranza) akış yönünde kalır. Boş ranzalar pres
+    (kalıp) hizasından, hattın iki yanındaki zemin konveyöründe tuğlayla aynı yönde (+X) gelir; istasyonda yandan
+    içe kaldırıcıya kayar. Dolu ranza düz ileri (+X) çıkış konveyörüne gider. İki akış kesişmez.
 16. **Emniyet:** ilk birikme bölgesinde "kuyruk dolu" sensörü → PLC presi otomatik durdurur.
 
 ## İkinci ürün: yığma tuğla (tasarımı açık, 2026-11-18)
 - 29 × 13,5 × 19 cm. Kalıp değişince 2 sütun çıkıyor (sütun eni 29), tel aralığı 13,5 cm (makinist ayarlıyor).
 - Makine bunu da dizmeli. 29'luk kenarla 3 × 29 = 87 cm, ranzanın 90 cm'lik derinliğine sığmıyor.
-- Elle diziliş: önde ve arkada 29'luk kenar plaka giriş yönünde (X) birer sıra, ortada 13,5 cm'lik yatay sıra.
+- Elle diziliş (onaylı): önde ve arkada 29'luk kenarı plaka giriş yönünde (X) 6'şar tuğla, ortada yatay yatırılmış
+  3 tuğla (29 Y yönünde) → kat başına 6 + 3 + 6 = 15 tuğla, derinlik ≈ 29 + 13,5 + 29 + aralıklar ≈ 75 cm, en ≈ 96 cm.
 - Akış, kesici, birikme, ön hazırlık ve tabla bu ürün için henüz tasarlanmadı (ROADMAP'e bak).
 
 ## 2D simülasyonda doğrulanan sonuçlar (240/dk, varsayılanlar)
 - Blok her 3,0 s; ön hazırlık ~330/dk'ya kadar yetişiyor (~%35–40 pay); ~360/dk'da taşıyor.
-- Bölgeli bantta 0 temas; tek parça bantta aynı koşulda yüzlerce temas.
+- Bölgeli bantta 0 temas. 240/dk'da kuyruk oluşmuyor, tek parça bantta da temas olmuyor; fark kuyruk oluşunca
+  çıkıyor: 300/dk'da bölgeli bantta 0, tek parça bantta 10 dk'da yüzlerce temas.
 - Plaka çevrimi ~5,4 s; her istasyona 12 s'de bir kat. Plaka ≥35 cm/s, kaldırıcı ≥20 cm/s şart.
 - 2 AGV teorik sınırda, 3 AGV önerilen.
 

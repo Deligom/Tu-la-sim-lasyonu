@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import type { PlanLayout } from '../sim/geometry';
-import { RANZA, Z, rackFeetZ } from '../sim/dims';
+import { RANZA, RANZA_AKIS, Z, rackFeetZ } from '../sim/dims';
 
 export const CAMS = ['genel', 'ustten', 'hazirlik', 'aYan', 'bYan', 'ranzaIci'] as const;
 export type CamName = (typeof CAMS)[number];
@@ -57,13 +57,14 @@ export function camPose(name: CamName, lay: PlanLayout, vb: ViewBox): CamPose {
   switch (name) {
     case 'genel':
       return portrait
-        ? fit(v(360, 0, 40), v(-0.78, -0.34, 0.6), 230, 300, 45, vb)
-        : fit(v(320, 0, 40), v(-0.36, -0.78, 0.55), 560, 200, 45, vb);
+        ? fit(v(440, 0, 30), v(-0.78, -0.34, 0.6), 300, 380, 45, vb)
+        : fit(v(420, 0, 30), v(-0.36, -0.78, 0.55), 660, 250, 45, vb);
     case 'ustten': {
       const x0 = -400;
-      const cx = (x0 + xEnd) / 2;
-      const half = (xEnd - x0) / 2 + 20;
-      const hy = cA + 75;
+      const x1 = lay.RK0 + RANZA.derinlikX + RANZA_AKIS.cukurArka + RANZA_AKIS.cikisTampon * RANZA_AKIS.adim + 30;
+      const cx = (x0 + x1) / 2;
+      const half = (x1 - x0) / 2 + 20;
+      const hy = cA + RANZA_AKIS.girisY + RANZA.boyY / 2 + 12;
       // Tam tepeden bakışta yön belirsiz olmasın diye çok küçük bir eğim veriliyor.
       const top = rackFeetZ(0) + RANZA.cerceveYuk + 10; // boş ranzanın tepesi
       return portrait

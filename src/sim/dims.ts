@@ -107,3 +107,26 @@ export function upperLevelClearance(): number {
   const ustKatAlt = RANZA.katArasi - RANZA.rayKenar;
   return ustKatAlt - tuglaUst;
 }
+
+/**
+ * Ranza akışı (2026-11-18). Boş ranzalar hattın iki yanındaki zemin konveyöründe, pres tarafından tuğlayla aynı
+ * yönde (+X) gelir; istasyonda yandan içe (A: −Y, B: +Y) kaldırıcıya kayar. Dolu ranza düz ileri (+X) çıkış
+ * konveyörüne gider. İki akış kesişmez. Mesafeler istasyon merkezinden (dışa doğru +), cm.
+ */
+export const RANZA_AKIS = {
+  /** Giriş konveyörünün ekseni */
+  girisY: 142,
+  /** Kaldırıcıdaki Y zincirlerinin dış ucu (giriş konveyörüne değer) */
+  zincirDis: 81,
+  /** Çukurun dış kenarı */
+  cukurDis: 81.5,
+  /** Çukur, ranza ön yüzünden bu kadar önde başlar ve arka yüzünden bu kadar geride biter */
+  cukurOn: 13.5,
+  cukurArka: 13,
+  /** Konveyörde ranza adımı (90 cm derinlik + 20 cm aralık) */
+  adim: 110,
+  /** Girişte bekleyen boş ranza sayısı (CLAUDE.md: 3 boş giriş tamponu) */
+  girisTampon: 3,
+  /** Çıkışta dolu ranza yeri (CLAUDE.md: 3 dolu çıkış tamponu) */
+  cikisTampon: 3,
+} as const;

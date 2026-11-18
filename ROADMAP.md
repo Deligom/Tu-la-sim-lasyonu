@@ -52,8 +52,12 @@ Revizyon (2026-11-18, kullanıcıyla):
 - [x] Hat yüksekliği ~1 m (`HAT_Z` tek sayı). Hatta seviye farkı yok; ranza kaldırıcı ~77 cm'lik çukurda.
   Ranza ayağı boşken +65,3 cm, son katta −54,7 cm. Plakanın arkasındaki parçalar artık plaka altına göre konumlu.
 - [x] Plaka ileri-geri tahriki: rayların dışında birer zincir, tamponun altından geçen ortak mil, tek servo.
-- [ ] Ranza giriş / çıkış akışı: yeni tasarım (boşlar ortadan, dolular arkadan) onay bekliyor. Ortadan besleme için
-  iki ranza arasında en az ~1,4 m gerekiyor (şu an 40 cm): tabla / tampon / plaka 50'şer cm dışa kayar.
+- [x] Ranza giriş / çıkış akışı: istasyon akış yönünde kaldı. Boş ranzalar kalıp hizasından hattın iki yanındaki
+  zemin konveyöründe +X yönünde geliyor (girişte 3 boş bekliyor), istasyonda yandan içe kaldırıcıya kayıyor; dolu
+  ranza düz ileri çıkış konveyörüne (3 yer) gidiyor. Kaldırıcıda çapraz aktarma: Y zincirleri (giriş) + X zincirleri
+  (çıkış). Giriş konveyörü istasyon merkezinden 142 cm dışarıda; hat toplam ~5,6 m eninde. Yan görünümde girişte
+  bekleyen ranzalar saydamlaşıyor (istasyonun önünü kapatmasın). Konveyör uzunluğu kalıptan başlıyor (~8 m, 7 ranza
+  sığar); mantıkta giriş tamponu 2D'deki gibi 3.
 - A tarafı (+Y) akışa bakana göre solda. Hat simetrik, yalnızca isim; artık Ş1 (−Y, B tarafı) 9,5 cm, Ş3 (+Y) 5,5 cm.
 
 ## Aşama 2 — Simülasyon mantığı ✅ (2026-11-18)
@@ -71,8 +75,7 @@ Notlar:
   hiç beklemiyor; 330/dk'da taşma yok; 360/dk'da taşma var.
 - 2D'nin kendisinde görülen iki şey (port hatası değil):
   1. 240/dk'da kuyruk 1 tuğlayı geçmiyor; tek parça bantta da temas olmuyor. Fark kuyruk oluşunca çıkıyor:
-     300/dk'da bölgeli bantta 0, tek parça bantta 10 dk'da yüzlerce temas. CLAUDE.md'deki "aynı koşulda yüzlerce
-     temas" cümlesi buna göre düzeltilmeli (sorulacak).
+     300/dk'da bölgeli bantta 0, tek parça bantta 10 dk'da yüzlerce temas. CLAUDE.md buna göre düzeltildi.
   2. Varsayılanlarda plaka zamanın ~%5,8'inde ranza bekliyor (değişim 6 s + 120 cm kaldırma 6 s). 2D'nin uyarı eşiği
      %5 olduğu için ~5. dakikadan sonra "ranza bekliyor" uyarısı veriyor; üretim etkilenmiyor (tabla bekleme %0).
 - Çukurlu kaldırıcıda değişim sırası farklı (dolu ranza önce zemine kalkar), toplam süre aynı. Mantıkta 2D sırası
@@ -80,7 +83,7 @@ Notlar:
 - Üst şeritte canlı sayaç: üretim/dk, temas, taşan, kat, ranza.
 
 ## Aşama 3 — Hareketli 3D
-(Ranza değişimi ve AGV maddesi, ranza giriş / çıkış akışı kararından sonra.)
+(Ranza değişimi: dolu ranza zemine kalkar → X zincirleriyle ileri çıkar → boş ranza yandan içe gelir → ilk kata kalkar.)
 - [ ] Tuğlalar InstancedMesh; artık parçaları ayrı renk.
 - [ ] Bölge bantlarının dönüşü (doku kaydırma), dozaj/ön hazırlık senkron indeksleme.
 - [ ] Pop-up çerçevenin kalkıp inmesi, bloğun A/B'ye gidişi.
@@ -99,8 +102,8 @@ Notlar:
 
 ## Aşama 6 — İkinci ürün: yığma tuğla (29 × 13,5 × 19)
 Tasarım açık; aşağıdakiler konuşulmadan başlanmayacak.
-- [ ] Diziliş deseni: önde ve arkada 29'luk kenar X yönünde 6'şar tuğla, ortada 13,5'luk yatay sıra (29 Y yönünde) 3 tuğla
-  → kat başına 15 tuğla, derinlik 29 + 13,5 + 29 = 71,5 cm (+ aralıklar), en ≈ 96 cm. Doğru mu?
+- [x] Diziliş deseni (onaylı): önde ve arkada 29'luk kenar X yönünde 6'şar tuğla, ortada 13,5'luk yatay sıra (29 Y
+  yönünde) 3 tuğla → kat başına 15 tuğla, derinlik 29 + 13,5 + 29 = 71,5 cm (+ aralıklar), en ≈ 96 cm.
 - [ ] Bantla çıkış yönü 13,5 X × 29 Y: orta sıra olduğu gibi, ön ve arka sıralar 90° dönmeli (tek tek ya da 6'lı grup).
 - [ ] 2 sütun × 29 cm + aralık ≈ 61 cm; 3 şeritlik bölgeli bant 47 cm. Şerit bantları 29'luk tuğlayı iki banda bindirir
   → bant düzeni / bölge eşlemesi değişmeli.

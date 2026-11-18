@@ -5,6 +5,8 @@ import type { LabelSpec } from './labels';
 import { buildConveyors, buildCutter, buildGates, buildPress, buildScrap, type LineHandles } from './line';
 import { buildPrep } from './prep';
 import { buildStation, type StationHandles } from './station';
+import { buildRackFlow, type RackFlowModel } from './rackflow';
+import { M } from './materials';
 import type { PlanLayout } from '../sim/geometry';
 import type { Params } from '../sim/params';
 
@@ -14,6 +16,9 @@ export interface Plant {
   line: LineHandles;
   prepPopup: THREE.Group;
   stations: StationHandles[];
+  rackFlows: RackFlowModel[];
+  /** Girişte bekleyen ranzaların kendi malzemeleri (yan görünümde saydamlaştırmak için) */
+  waitingMats: THREE.MeshStandardMaterial[];
 }
 
 export function buildPlant(lay: PlanLayout, p: Readonly<Params>): Plant {
@@ -32,7 +37,12 @@ export function buildPlant(lay: PlanLayout, p: Readonly<Params>): Plant {
   root.add(prep.group);
   const stations = ([0, 1] as const).map((s) => buildStation(lay, p, s, labels));
   for (const st of stations) root.add(st.group);
+  const wm = { rack: M.rack.clone(), wood: M.wood.clone(), woodDark: M.woodDark.clone() };
+  const rackFlows = ([0, 1] as const).map((s) => buildRackFlow(lay, s, labels, wm));
+  for (const rf of rackFlows) root.add(rf.group);
   return {
+    rackFlows,
+    waitingMats: [wm.rack, wm.wood, wm.woodDark],
     root,
     labels,
     line: { harp: cutter.harp, gates: gates.gates, pushers: scrap.pushers },

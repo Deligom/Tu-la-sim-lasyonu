@@ -45,6 +45,8 @@ export const M = {
   follower: std(0x0c447c, 0.4, 0.5),
   eccentric: std(0xe3a52b, 0.4, 0.5),
   floor: std(0xbdb7ab, 1, 0),
+  paintYellow: std(0xd9a92e, 0.8, 0),
+  paintGreen: std(0x3f8f60, 0.8, 0),
   pit: std(0x6d6961, 1, 0, { side: THREE.BackSide }),
   human: std(0x3f6c9c, 0.85, 0),
   skin: std(0xc9a07e, 0.8, 0),
