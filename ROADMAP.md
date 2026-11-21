@@ -5,6 +5,24 @@ Her aşama bitince bu dosyayı güncelle (✅ / notlar). Bir aşamayı bitirmede
 **Telefon önizlemesi:** https://claude.ai/artifact/PD6tnqViXV7VJ1bVX8zdWw (özel link; `npm run build` →
 `dist/onizleme.html` aynı adrese yeniden yayınlanır, başka bir oturumdan güncellerken bu URL verilmeli).
 
+## Devam notu (2026-11-21) — yeni sohbet buradan başlasın
+- Depo: `Deligom/Tu-la-sim-lasyonu`, dal: `claude/adoring-cannon-pyibnj` (main'e birleştirilmedi). Önce `CLAUDE.md`,
+  sonra bu dosya. `npm install && npm test` (50 test), `npm run dev` (geliştirme), `npm run build` (önizleme dosyası).
+- Bitenler: Aşama 0–3, Aşama 5'in iniş kısmı (eğilir burun). Sıradakiler: Aşama 4 (arayüz) ya da Aşama 5'in kalanı
+  (plaka sehimi / üst kata boşluk, makara çifti kuvvetleri). Aşama 6 (yığma tuğla) tasarımı açık.
+- Kullanıcıdan cevap bekleyenler: (1) eğilir burunda uç makarası inikken çıtada yuvarlansın mı (iniş 3,1 → 2,6 cm),
+  Ø12 makara olur mu; (2) burnu ne indirecek (kam mili / ince silindir / bağlantı çubuğu), bant gerdirme;
+  (3) sıradaki iş hangisi.
+- Son konu: kullanıcı ekran görüntüsünde burnu geçen tuğlanın hâlâ eğildiğini gördü ve **ayrıntılı, fizikli bir yükleme
+  simülasyonu** istiyor (Blender önerdi). Şu anki model (`src/sim/landing.ts`) yarı-statik katı cisim: darbe, sekme,
+  kayma, yaş kilin ezilmesi yok. Konuşulacak seçenekler: (a) aynı depoda ayrı bir "yükleme detayı" sayfası, tarayıcıda
+  fizik motoru (ör. Rapier / cannon-es) ile plaka–burun–çıta–tuğla, darbe hızı ve eğim ölçümü, parametreler bizim
+  sayılarımızdan; (b) Blender rigid body: görsel ve video için iyi, ama parametrelerimize bağlı değil, yineleme yavaş;
+  (c) her durumda: sahada gerçek yaş tuğlayı 3 cm ve 5,5 cm'den çıtaya düşürme denemesi (ezilme sınırı için en güvenilir veri).
+- Fabrika fotoğrafları depoda yok (depo herkese açık); gerekirse kullanıcı yeniden yükler. Ölçüleri CLAUDE.md'de.
+- Telefon önizlemesi: https://claude.ai/artifact/PD6tnqViXV7VJ1bVX8zdWw (`npm run build` → `dist/onizleme.html`,
+  aynı adrese bu URL verilerek yayınlanır).
+
 ## Aşama 0 — Kurulum ✅ (2026-11-18)
 - [x] Vite + TypeScript + Three.js projesi; `src/sim/` (mantık), `src/scene/` (3D), `src/ui/` (panel).
 - [x] Sabit adımlı (5 ms) simülasyon döngüsü, hız çarpanı (¼×, 1×, 3×, 10×), durdur / sıfırla.
