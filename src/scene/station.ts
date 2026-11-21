@@ -10,6 +10,7 @@ import { buildRack, type RackModel } from './rack';
 import { popupBandX, tableColumnY, type PlanLayout, type Side } from '../sim/geometry';
 import type { Params } from '../sim/params';
 import { PIT_DEPTH, PLAKA, RANZA, RANZA_AKIS, Z, rackFeetZ } from '../sim/dims';
+import { NOSE_DEFAULT, noseAngle, tipThickness } from '../sim/landing';
 
 export interface LifterModel {
   platform: THREE.Group;
@@ -24,6 +25,10 @@ export interface StationHandles {
   tablePopup: THREE.Group;
   /** Plaka düzeneği; position.x = strok (0 = bekleme) */
   plate: THREE.Group;
+  /** Eğilir burun: menteşe ekseninde döner (rotation.y = +açı → uç aşağı) */
+  nose: THREE.Group;
+  /** Burnun tam inmiş açısı, radyan */
+  noseDown: number;
   /** Plaka zincirleri (doku kaydırma / bağlantı noktası Aşama 3'te) */
   chains: THREE.Group;
   rack: RackModel;
@@ -175,18 +180,18 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
       'geri çekilirken bant aynı hızda ileri sarar, tuğla zemine göre durup çıtaya iner. ' +
       `Arkadan iki yana ${PLAKA.kolBoy} cm kol, her kolda ${PLAKA.makaraArasi} cm arayla 2 makara çifti (sarı olan eksantrik milli). Bant motoru arkada, altta.`,
   });
+  // Gövde: arkadan menteşeye kadar (menteşede bandın büküldüğü makara)
+  const xh = R0 + PLAKA.boy - NOSE_DEFAULT.noseLen;
   for (let k = 0; k < PLAKA.profilAdet; k++) {
     const y = c - 45 + 10 * k;
-    pl.box(M.plate, R0 + 2, R0 + 80, y - 1, y + 1, za + 0.3, zu - 0.6);
+    pl.box(M.plate, R0 + 2, xh - 2.3, y - 1, y + 1, za + 0.3, zu - 0.6);
   }
-  pl.box(M.plate, R0, R0 + 86.5, c - half, c + half, zu - 0.6, zu - 0.3);
-  for (const v of [-1, 1]) pl.box(M.plate, R0, R0 + 80, c + v * (half - 0.5), c + v * half, za + 0.3, zu - 0.6);
-  pl.box(M.plate, R0 + 80, R0 + 86, c - half, c + half, za + 2.4, zu - 0.6);
-  pl.slopeXZ(M.plate, c - half, c + half, R0 + 80, za + 0.55, R0 + 86, za + 2.4, 0.5);
-  pl.box(M.plateBelt, R0 + 2.3, R0 + 87, c - 49, c + 49, zu - 0.3, zu);
-  pl.box(M.plateBelt, R0 + 2.3, R0 + 80, c - 49, c + 49, za, za + 0.3);
-  pl.cyl(M.plateBelt, 'y', R0 + PLAKA.boy - 1, c, zu - 1.15, 1.15, 98, 14);
+  pl.box(M.plate, R0, xh - 2.3, c - half, c + half, zu - 0.6, zu - 0.3);
+  for (const v of [-1, 1]) pl.box(M.plate, R0, xh + 1, c + v * (half - 0.5), c + v * half, za + 0.3, zu - 0.6);
+  pl.box(M.plateBelt, R0 + 2.3, xh, c - 49, c + 49, zu - 0.3, zu);
+  pl.box(M.plateBelt, R0 + 2.3, xh, c - 49, c + 49, za, za + 0.3);
   pl.cyl(M.steelDark, 'y', R0 + 2.3, c, (za + zu) / 2, 2.2, 98, 16);
+  pl.cyl(M.steelDark, 'y', xh, c, (za + zu) / 2, 2.2, 98, 16);
   // arka kiriş, bağlantı levhaları, bant motoru (hepsi plakanın arkasında: ranzaya hiç girmez)
   pl.box(M.steel, R0 - 8, R0, c - 51.8, c + 51.8, za - 10.5, za - 2.5);
   for (const v of [-1, 1]) pl.box(M.steel, R0 - 0.8, R0, c + v * 44, c + v * 49, za - 2.5, za + 0.3);
@@ -207,13 +212,42 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
     pl.box(M.arm, xa - 3, xa + 3, c + v * 51.8, c + v * 56.8, fu + 1.9, fu + 3.25);
     pl.box(M.arm, xa - 3, xa + 3, c + v * 55.6, c + v * 56.8, zMid + sprR + 0.4, fu + 3.25);
   }
-  // plaka ucunda 2 lazer mesafe sensörü
+  // 2 lazer mesafe sensörü: menteşenin hemen arkasında, gövdenin içinde
   for (const v of [-1, 1]) {
-    pl.box(M.sensor, R0 + 81, R0 + 85, c + v * 36 - 2, c + v * 36 + 2, za + 1.1, za + 2.2);
-    pl.box(M.lens, R0 + 82, R0 + 84, c + v * 36 - 1, c + v * 36 + 1, za + 0.9, za + 1.1);
+    pl.box(M.sensor, xh - 7, xh - 3, c + v * 36 - 2, c + v * 36 + 2, za + 0.6, za + 2.2);
+    pl.box(M.lens, xh - 6, xh - 4, c + v * 36 - 1, c + v * 36 + 1, za + 0.35, za + 0.6);
   }
   const plate = pl.build(`${name} plaka düzeneği`);
   group.add(plate);
+
+  // Eğilir burun (2026-11-21): menteşeden uca kama. Düzken üst yüz düz (taşıma), inince alt yüz çıtalara paralel,
+  // üst yüz rampa olur. Uçta Ø20 mm makara, bant menteşe makarasından ve uç makarasından dolanır.
+  const tipT = tipThickness(NOSE_DEFAULT);
+  const xt = R0 + PLAKA.boy;
+  const rr = NOSE_DEFAULT.rollerDia / 2 + NOSE_DEFAULT.beltThk;
+  const nz = new Parts({
+    title: `${name} eğilir burun`,
+    detail: `Menteşeli kama, ${NOSE_DEFAULT.noseLen} cm. Ranzaya girerken düz (plakanın tam ${PLAKA.boy} cm'si taşır); geri çekilirken ` +
+      `${tr((noseAngle(NOSE_DEFAULT) * 180) / Math.PI)}° iner: alt yüz çıtaların ${tr(PLAKA.citaBoslugu * 10)} mm üstünde, üst yüz rampa olur. ` +
+      'Tuğlanın burundan inişi yarıya iner (ayrıntı için plakaya dokun). Tahrik (kam / küçük silindir) ve bant gerdirme şematik.',
+  });
+  nz.box(M.plate, xh + 2.3, xt - rr, c - half, c + half, zu - 0.6, zu - 0.3);
+  nz.slopeXZ(M.plate, c - half, c + half, xh + 2.3, za + 0.55, xt - rr, zu - tipT + 0.25, 0.5);
+  for (let k = 0; k < PLAKA.profilAdet; k++) {
+    const y = c - 45 + 10 * k;
+    nz.slopeXZ(M.plate, y - 1, y + 1, xh + 2.3, (za + zu) / 2 - 0.3, xt - rr, zu - tipT / 2 - 0.2, 1.2);
+  }
+  nz.box(M.plateBelt, xh, xt - rr, c - 49, c + 49, zu - 0.3, zu);
+  nz.slopeXZ(M.plateBelt, c - 49, c + 49, xh, za + 0.15, xt - rr, zu - tipT + 0.15, 0.3);
+  nz.cyl(M.plateBelt, 'y', xt - rr, c, zu - rr, rr, 98, 14);
+  nz.cyl(M.steel, 'y', xt - rr, c, zu - rr, NOSE_DEFAULT.rollerDia / 2, 99.4, 10);
+  const noseMesh = nz.build(`${name} eğilir burun`);
+  const nose = new THREE.Group();
+  nose.name = `${name} burun menteşesi`;
+  nose.position.set(xh, c, zu);
+  noseMesh.position.set(-xh, -c, -zu);
+  nose.add(noseMesh);
+  plate.add(nose);
 
   // ---------- Ranza ve kaldırıcı ----------
   const rx0 = lay.RK0;
@@ -296,5 +330,5 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
   labels.push({ text: `Plaka ${name}`, pos: [R0 + PLAKA.boy / 2, c, zr + 30] });
   labels.push({ text: `Ranza ${name} · boş`, pos: [(rx0 + rx1) / 2, c, rackFeetZ(0) + RANZA.cerceveYuk + 26], key: `rack${side}` });
 
-  return { group, handles: { side, tablePopup, plate, chains, rack, lifter } };
+  return { group, handles: { side, tablePopup, plate, nose, noseDown: noseAngle(NOSE_DEFAULT), chains, rack, lifter } };
 }

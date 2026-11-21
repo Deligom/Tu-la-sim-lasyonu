@@ -6,6 +6,7 @@ import { summarize } from '../sim/stats';
 import { CAMS, CAM_LABELS, type CamName } from '../scene/cameras';
 import type { Viewer } from '../scene/viewer';
 import type { SlatType } from '../scene/rack';
+import type { LandingResult, NoseKind } from '../sim/landing';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -67,23 +68,55 @@ export function initPanel(loop: SimLoop, viewer: Viewer, sim: Simulation) {
     bLabels.setAttribute('aria-pressed', String(labels));
   });
 
-  const bSlats = $<HTMLButtonElement>('bSlats');
+  const info = $('info');
+  const showCard = (title: string, detail: string) => {
+    info.hidden = false;
+    $('infoTitle').textContent = title;
+    $('infoDetail').textContent = detail;
+  };
+  viewer.onPick((p) => {
+    info.hidden = !p;
+    if (p) showCard(p.title, p.detail ?? '');
+  });
+
+  // İniş kontrolü: burun ve çıta tipine göre tuğlanın plakadan çıtaya inişi
+  const num = (v: number) => v.toFixed(1).replace('.', ',');
+  let nose: NoseKind = 'egilir';
   let slat: SlatType = 'paralel';
+  let land: LandingResult = viewer.landing();
+  const landingCard = () => {
+    const other = nose === 'egilir' ? 'sabit' : 'egilir';
+    const lines = [
+      `Ön kenar en çok ${num(land.maxDrop)} cm düşüyor, tuğla en çok ${Math.round(land.maxTiltDeg)}° eğiliyor.`,
+      nose === 'egilir'
+        ? `Burun geri çekilirken ${num(land.noseDeg)}° iniyor: alt yüzü çıtalara paralel, üst yüzü rampa.`
+        : 'Burun düz kalıyor: tuğla plakanın 5 cm kalınlığı + 5 mm boşluk kadar yüksekten iniyor.',
+      slat === 'dik' ? `Dik çıtada ön kenar ${num(land.maxDip)} cm boşluğa dalıyor: ezilir, bu yüzden ranza reddediliyor.` : '',
+      `Karşılaştırmak için "Burun: ${other === 'egilir' ? 'eğilir' : 'sabit'}" düğmesine bas; "A yan" ya da "Ranza içi"nden izle.`,
+    ].filter(Boolean);
+    showCard(`İniş kontrolü · ${nose === 'egilir' ? 'eğilir burun' : 'sabit burun'} · çıtalar ${slat}`, lines.join(' '));
+  };
+
+  const bSlats = $<HTMLButtonElement>('bSlats');
   bSlats.addEventListener('click', () => {
     slat = slat === 'paralel' ? 'dik' : 'paralel';
     viewer.setSlatType(slat);
+    land = viewer.landing();
     bSlats.textContent = `Çıtalar: ${slat}`;
     bSlats.classList.toggle('on', slat === 'dik');
     bSlats.setAttribute('aria-pressed', String(slat === 'dik'));
+    landingCard();
   });
 
-  const info = $('info');
-  viewer.onPick((p) => {
-    info.hidden = !p;
-    if (p) {
-      $('infoTitle').textContent = p.title;
-      $('infoDetail').textContent = p.detail ?? '';
-    }
+  const bNose = $<HTMLButtonElement>('bNose');
+  bNose.addEventListener('click', () => {
+    nose = nose === 'egilir' ? 'sabit' : 'egilir';
+    land = viewer.setNose(nose);
+    bNose.textContent = `Burun: ${nose === 'egilir' ? 'eğilir' : 'sabit'}`;
+    bNose.classList.toggle('on', nose === 'egilir');
+    bNose.setAttribute('aria-pressed', String(nose === 'egilir'));
+    landingCard();
+    lastShown = -1;
   });
   $('infoClose').addEventListener('click', () => viewer.clearSelection());
 
@@ -114,7 +147,7 @@ export function initPanel(loop: SimLoop, viewer: Viewer, sim: Simulation) {
       simSteps.textContent = `${fmtInt(loop.steps)} adım × ${DT * 1000} ms`;
       const s = summarize(sim.S);
       simStats.textContent = `${s.perMin === null ? '–' : Math.round(s.perMin)}/dk · temas ${s.contacts} · taşan ${s.lost}`;
-      simStats2.textContent = `kat ${s.levels} · ranza ${s.racks}${s.anomaly ? ' · ⚠ hata' : ''}`;
+      simStats2.textContent = `kat ${s.levels} · ranza ${s.racks} · iniş ${num(land.maxDrop)} cm${s.anomaly ? ' · ⚠ hata' : ''}`;
       simStats.classList.toggle('bad', s.contacts > 0 || s.lost > 0);
     },
   };

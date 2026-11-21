@@ -57,6 +57,12 @@ referansı o dosyadaki `step()` fonksiyonudur; 3D sürüm aynı sonuçları verm
     **Kılavuz:** plakanın iki yanında, ranzanın DIŞINDA biten sabit çelik profil ray. Plakanın arkasından iki yana
     50 cm (tercihen 60 cm) kol; her kolda 2 makara çifti (cam follower) rayı **alttan ve üstten** kavrar, biri
     eksantrik milli (boşluk alma). Altında araba YOK. Bant motoru plakanın arka kısmında.
+    **Eğilir burun (2026-11-21, kullanıcı önerisi, ölçüler taslak):** plakanın son 11 cm'si menteşeli kama. Ranzaya
+    girerken düz (plakanın tam 88 cm'si taşır), strokun son 2 cm'sinde ~13° iner: alt yüzü çıtaların 5 mm üstünde ve
+    çıtalara paralel, üst yüzü rampa olur; geri çekilirken inik kalır, plaka ranzadan çıkarken kalkar. Menteşede bandın
+    büküldüğü makara, uçta Ø20 mm makara. Menteşe ön sıradaki tuğlanın ağırlık merkezinin önünde (inerken tuğla oynamaz).
+    Tuğlanın burundan inişi: sabit burunda 5,5 cm / 30° devrilme → eğilir burunda ~3,1 cm / ~18° (kalan düşüşü uç
+    yüksekliği belirler: 5 mm boşluk + Ø20 makara + 2 kat bant). Hesap: `src/sim/landing.ts`.
     **İleri-geri tahrik (2026-11-18):** zincir. Rayların dışında birer makaralı zincir, tamponun altından geçen ortak
     mille tek servo motordan sürülür (iki taraf mekanik senkron). Vidalı mil yok: yavaş ve araya bir şey sıkışmaya açık.
 12. **Ranza:** 120 (boy, Y) × 90 (derinlik, X) × 150 cm (en üst tuğlayla 180), 5 kat, kat arası 30 cm,

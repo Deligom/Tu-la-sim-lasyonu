@@ -17,11 +17,16 @@ import type { Params } from '../sim/params';
 import type { SimState } from '../sim/model';
 import { POP_INIS, POP_KALKIS, RACK_FEET_LOW, RANZA, RANZA_AKIS, TUGLA, Z } from '../sim/dims';
 import { swapElapsed, swapView } from '../sim/swapview';
+import { NOSE_DEFAULT, brickPose, checkLanding, type LandingConfig, type LandingResult, type NoseKind } from '../sim/landing';
 
 export interface Motion {
   /** Durumu sahneye yansıt. Bir şey değiştiyse true. */
   update(S: SimState): boolean;
   setDefaultSlat(t: SlatType): void;
+  /** Burun tipi (sabit / eğilir); iniş ölçümünü döndürür */
+  setNose(k: NoseKind): LandingResult;
+  /** Şu anki burun ve çıta tipiyle iniş ölçümü */
+  landing(): LandingResult;
   /** Dinamik etiket yazıları (anahtar → yazı) */
   labelTexts(): Map<string, string>;
   /** Dokunarak seçilebilen hareketli nesneler */
@@ -259,6 +264,22 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
 
   const setSlat = (r: RackModel, reject: boolean) => r.setSlatType(reject ? 'dik' : defaultSlat);
 
+  // Eğilir burun: girişin son 2 cm'sinde iner (menteşe ön sıranın ağırlık merkezinin önünde, tuğla oynamaz),
+  // geri çekilirken bütün tuğlalar indikten sonra, plaka ranzadan çıkarken kalkar.
+  let nose: NoseKind = NOSE_DEFAULT.nose;
+  const noseK = [0, 0];
+  const landCfg = (): LandingConfig => ({ ...NOSE_DEFAULT, nose, slat: defaultSlat });
+  const rowsX0 = pattern[0].filter((_, i) => i % 6 === 0).map((b) => b.dx);
+  const landing = () => checkLanding(landCfg(), rowsX0, lay.PL0 + lay.DX + lay.PLEN - lay.RK0);
+  const updateNoseK = (S: SimState) =>
+    S.sides.forEach((sd, s) => {
+      const pl = sd.plate;
+      if (nose !== 'egilir') noseK[s] = 0;
+      else if (pl.phase === 'insert') noseK[s] = smooth((pl.px - (lay.DX - 2)) / 2);
+      else if (pl.phase === 'retract') noseK[s] = smooth(pl.px / 8);
+      else noseK[s] = 0;
+    });
+
   function update(S: SimState): boolean {
     if (S !== lastS) {
       lastS = S;
@@ -269,6 +290,7 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
     lastT = S.t;
     n = 0;
 
+    updateNoseK(S);
     // 1) sütunlar
     for (let i = 0; i < 3; i++) put(0, S.f[i], laneY[i], zr, LANE[i]);
 
@@ -312,14 +334,11 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
             put(b.x, L, y, Z.plakaUst, LANE[b.lane]);
             break;
           }
-          // Geri çekilirken bant sarar: tuğla yerinde durur, burun altından geçer. Ağırlık merkezi burnu geçince
-          // tuğla öne devrilir, ön kenarı çıtaya oturur; burun arka kenardan da çıkınca düz iner.
-          const xn = lay.PL0 + pl.px + lay.PLEN - 1;
-          const x1 = b.x + L;
-          const dz = Z.plakaUst - Z.aktifCita;
-          if (xn >= b.x + L / 2) put(b.x, L, y, Z.plakaUst, LANE[b.lane]);
-          else if (xn > b.x) put(b.x, L, y, Z.aktifCita, LANE[b.lane], Math.asin(Math.min(1, dz / Math.max(x1 - xn, dz))));
-          else put(b.x, L, y, Z.aktifCita, LANE[b.lane]);
+          // Geri çekilirken bant sarar: tuğla yerinde durur, altından plaka → burun → çıta geçer. Duruş, iniş
+          // ölçümüyle aynı modelden (src/sim/landing.ts): destek noktalarının üst zarfına oturan katı cisim.
+          const tip = lay.PL0 + pl.px + lay.PLEN - lay.RK0;
+          const pose = brickPose(landCfg(), b.x - lay.RK0, tip, noseK[s]);
+          put(b.x, L, y, Z.aktifCita + pose.zFront, LANE[b.lane], pose.tilt);
           break;
         }
         default:
@@ -369,6 +388,7 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
     S.sides.forEach((sd, s) => {
       const st = plant.stations[s];
       const rf = plant.rackFlows[s];
+      st.nose.rotation.y = nose === 'egilir' ? st.noseDown * noseK[s] : 0;
       const rk = sd.rack;
       const c = sideC[s];
       const sy = s === 0 ? 1 : -1;
@@ -506,6 +526,16 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
       }
     },
     labelTexts: () => texts,
+    setNose(k) {
+      nose = k;
+      if (lastS) {
+        const S = lastS;
+        lastT = Number.NaN;
+        update(S);
+      }
+      return landing();
+    },
+    landing,
     pickables: [inst, fx],
     prepPick() {
       inst.computeBoundingSphere();

@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import type { PlanLayout } from '../sim/geometry';
 import { RANZA, RANZA_AKIS, Z, rackFeetZ } from '../sim/dims';
 
-export const CAMS = ['genel', 'ustten', 'hazirlik', 'aYan', 'bYan', 'ranzaIci'] as const;
+export const CAMS = ['genel', 'ustten', 'hazirlik', 'aYan', 'bYan', 'burun', 'ranzaIci'] as const;
 export type CamName = (typeof CAMS)[number];
 
 export const CAM_LABELS: Record<CamName, string> = {
@@ -14,6 +14,7 @@ export const CAM_LABELS: Record<CamName, string> = {
   hazirlik: 'Ön hazırlık',
   aYan: 'A yan',
   bYan: 'B yan',
+  burun: 'Burun',
   ranzaIci: 'Ranza içi',
 };
 
@@ -83,6 +84,11 @@ export function camPose(name: CamName, lay: PlanLayout, vb: ViewBox): CamPose {
       const s = name === 'aYan' ? 1 : -1;
       const cx = (lay.BUF0 + xEnd) / 2;
       return fit(v(cx, c, Z.hat - 10), v(-0.06, s, 0.12), 180, 150, 30, vb, 60);
+    }
+    case 'burun': {
+      // A plakasının burnu ve aktif kat, ranzanın dışından (+Y), boş aktarma yerinin üstünden yandan bakış.
+      const t = v(lay.RK0 + 42, cA, Z.aktifCita + 7);
+      return fit(t, v(0.02, 1, 0.14), 62, 26, 24, vb);
     }
     case 'ranzaIci': {
       // A ranzasının içinde, tuğla tepeleriyle üst kat arasındaki boşluktan, tuğlalarla yan çerçeve arasındaki

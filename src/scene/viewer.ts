@@ -10,6 +10,7 @@ import { addLights, buildEnvironment } from './environment';
 import { camPose, type CamName, type CamPose, type ViewBox } from './cameras';
 import type { PartInfo } from './parts';
 import type { SlatType } from './rack';
+import type { LandingResult, NoseKind } from '../sim/landing';
 import type { Simulation } from '../sim/sim';
 
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
@@ -22,6 +23,8 @@ export interface Viewer {
   setInsets(top: number, bottom: number): void;
   setLabels(on: boolean): void;
   setSlatType(t: SlatType): void;
+  setNose(k: NoseKind): LandingResult;
+  landing(): LandingResult;
   onPick(cb: (info: PartInfo | null) => void): void;
   onCameraChange(cb: (name: CamName | null) => void): void;
   clearSelection(): void;
@@ -77,7 +80,7 @@ export function createViewer(host: HTMLElement, sim: Simulation): Viewer {
   // Etiketler ranzanın içinden bakarken gizlenir (her şeyin önüne çıkıp görüşü kapatıyorlar).
   let labelsOn = true;
   const syncLabels = () => {
-    const vis = labelsOn && current !== 'ranzaIci';
+    const vis = labelsOn && current !== 'ranzaIci' && current !== 'burun';
     for (const o of labelObjs) o.visible = vis;
     // Yan görünümde girişte bekleyen boş ranzalar istasyonun önünü kapatıyor: saydamlaştır.
     const ghost = current === 'aYan' || current === 'bYan';
@@ -243,6 +246,12 @@ export function createViewer(host: HTMLElement, sim: Simulation): Viewer {
       if (picked) select(picked);
       requestRender();
     },
+    setNose(k) {
+      const r = motion.setNose(k);
+      requestRender();
+      return r;
+    },
+    landing: () => motion.landing(),
     onPick(cb) {
       pickCb = cb;
     },

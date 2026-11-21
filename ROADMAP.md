@@ -121,10 +121,25 @@ bıraktığı boş ranza kuyruğa atlıyor (konveyörde yürümüyor); AGV'ler a
 - [ ] Değişen ayarlar listesi + varsayılana dön; teşhis JSON'unu kopyala.
 - [ ] Telefonda kullanılabilir yerleşim.
 
-## Aşama 5 — Mühendislik kontrolleri
+## Aşama 5 — Mühendislik kontrolleri (iniş kısmı öne alındı, 2026-11-21)
+- [x] **Burundan iniş** (öne alındı): `src/sim/landing.ts`, testli. Tuğla, geri çekilen plakanın altında değişen
+  destek yüzeyine (plaka → burun → çıta) oturan yarı-statik katı cisim; duruş = destek noktalarının üst dışbükey
+  zarfı. Bir adımda köşenin ani düşüşü = devrilme / düşme. Sahnedeki tuğla duruşu aynı fonksiyondan.
+  - Sabit burun: ön kenar 5,5 cm düşüyor, ~30° devriliyor.
+  - **Eğilir burun** (kullanıcı önerisi, CLAUDE.md #11): 11 cm menteşeli kama, strokun son 2 cm'sinde ~13° iner, alt
+    yüzü çıtaların 5 mm üstünde. İniş ~3,1 cm / ~18°. 11 cm'den uzun burun düşüşü azaltmıyor; kalan düşüş uç
+    yüksekliğinden (5 mm + Ø20 makara + 2 kat bant). 11 cm'de menteşe ön sıranın ağırlık merkezinin önünde: burun
+    inerken tuğla oynamıyor, çevrim süresi uzamıyor (mantık ve 2D sonuçları değişmiyor).
+  - Seçenekler (ölçüldü, karar bekliyor): uç makarası inikken çıtaların üstünde yuvarlanırsa (0 boşluk) 2,6 cm;
+    Ø12 makarayla daha da az.
+  - Arayüz: "Burun: eğilir / sabit" düğmesi, iniş kartı, üst şeritte "iniş X cm", yeni "Burun" kamerası.
+- [x] Dik çıtalı ranzada tuğla düşmesi senaryosu (görsel + sayı): "Çıtalar: dik" seçilince sahnede tuğla ucu boşluğa
+  dalıyor; sabit burunda 8,6 cm düşüş + 3,1 cm dalma, eğilir burunda bile ~1,6 cm dalma → red gerekçesi doğrulandı.
+  (Mantıkta red 2D'deki gibi `badRack` oranıyla.)
 - [ ] Plaka sehimi ve kat yüksekliği boşluğu görselleştirmesi (plaka ile üst kat çıtası arası mm).
-- [ ] Dik çıtalı ranzada tuğla düşmesi senaryosu (görsel uyarı + red).
 - [ ] Makara çifti kuvvetleri (yük ağırlık merkezi ve kol uzunluğuna göre) panelde.
+- Açık: eğilir burnun tahriki (kam mili / ince silindir / bağlantı çubuğu), bant gerdirme (burun inince üst bant boyu
+  değişir), lazerler menteşenin arkasına alındı.
 
 ## Aşama 6 — İkinci ürün: yığma tuğla (29 × 13,5 × 19)
 Tasarım açık; aşağıdakiler konuşulmadan başlanmayacak.
