@@ -11,6 +11,7 @@ import { camPose, type CamName, type CamPose, type ViewBox } from './cameras';
 import type { PartInfo } from './parts';
 import type { SlatType } from './rack';
 import type { LandingResult, NoseKind } from '../sim/landing';
+import type { LoaderKind } from '../phys/config';
 import type { Simulation } from '../sim/sim';
 
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
@@ -25,6 +26,8 @@ export interface Viewer {
   setSlatType(t: SlatType): void;
   setNose(k: NoseKind): LandingResult;
   landing(): LandingResult;
+  /** Yükleyici: bantlı plaka ya da tarak tutucu (aday) */
+  setLoader(k: LoaderKind): void;
   onPick(cb: (info: PartInfo | null) => void): void;
   onCameraChange(cb: (name: CamName | null) => void): void;
   clearSelection(): void;
@@ -252,6 +255,10 @@ export function createViewer(host: HTMLElement, sim: Simulation): Viewer {
       return r;
     },
     landing: () => motion.landing(),
+    setLoader(k) {
+      motion.setLoader(k);
+      requestRender();
+    },
     onPick(cb) {
       pickCb = cb;
     },

@@ -6,7 +6,7 @@
   "description": "Yaş tuğla dizme hattının gerçek ölçekli 3D simülasyonu",
   "scripts": {
     "dev": "vite --host",
-    "build": "tsc --noEmit && vite build && node scripts/artifact-html.mjs",
+    "build": "tsc --noEmit && vite build && vite build --mode yukleme && node scripts/artifact-html.mjs dist/index.html dist/onizleme.html && node scripts/artifact-html.mjs dist-yukleme/yukleme.html dist-yukleme/onizleme.html",
     "preview": "vite preview --host",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

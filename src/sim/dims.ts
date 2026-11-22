@@ -36,8 +36,15 @@ export const PLAKA = {
   kalinlik: 5,
   /** Plaka altı ile çıta üstü arası */
   citaBoslugu: 0.5,
-  /** Burun makarası çapı, en fazla 20 mm */
-  burunCap: 2,
+  /**
+   * Eğilir burun (2026-11-22, kullanıcı seçti; fizikli yükleme detayında denendi): menteşeden uca 35 cm, uçta Ø12 mm
+   * makara, menteşede Ø20 mm makara. Servo + metal plakalı kol indirir (~5°).
+   */
+  burunBoy: 35,
+  /** Uç (burun) makarası çapı */
+  burunCap: 1.2,
+  /** Menteşede bandın büküldüğü makara çapı */
+  menteseCap: 2,
   /** Plakanın arkasından iki yana uzanan kollar ve üzerindeki makara çiftleri arası */
   kolBoy: 50,
   makaraArasi: 40,

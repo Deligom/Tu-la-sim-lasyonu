@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NOSE_DEFAULT, brickPose, checkLanding, noseAngle, tipHeight, tipThickness, topHeight } from '../src/sim/landing';
+import { NOSE_DEFAULT, NOSE_SHORT, brickPose, checkLanding, noseAngle, tipHeight, tipThickness, topHeight } from '../src/sim/landing';
 import { planLayout, tableColumnY } from '../src/sim/geometry';
 import { DEFAULT_PARAMS } from '../src/sim/params';
 import { PLAKA, RANZA, TUGLA } from '../src/sim/dims';
@@ -25,13 +25,24 @@ describe('plakadan çıtaya iniş', () => {
     expect(r.maxDip).toBeLessThan(1e-9);
   });
 
-  it('eğilir burun (11 cm): düşüş uç yüksekliğine iner (~3,1 cm), eğim ~18°', () => {
+  it('eğilir burun (35 cm, Ø12 uç): düşüş uç yüksekliğine iner (~2,3 cm), eğim ~14°, burun ~5° iner', () => {
     const r = checkLanding(NOSE_DEFAULT, rows, tipStart);
+    expect(tipHeight(NOSE_DEFAULT)).toBeCloseTo(2.3, 6);
     expect(r.maxDrop).toBeCloseTo(tipHeight(NOSE_DEFAULT), 1);
-    expect(r.maxDrop).toBeLessThan(0.6 * topHeight(NOSE_DEFAULT));
-    expect(r.maxTiltDeg).toBeLessThan(19);
-    expect(r.noseDeg).toBeGreaterThan(10);
-    expect(r.noseDeg).toBeLessThan(14);
+    expect(r.maxDrop).toBeLessThan(0.45 * topHeight(NOSE_DEFAULT));
+    expect(r.maxTiltDeg).toBeLessThan(15);
+    expect(r.noseDeg).toBeGreaterThan(4);
+    expect(r.noseDeg).toBeLessThan(6);
+  });
+
+  it('ilk taslak (11 cm, Ø20 uç): ~3,1 cm, ~18°; yeni burun ikisini de azaltıyor', () => {
+    const k = checkLanding(NOSE_SHORT, rows, tipStart);
+    const y = checkLanding(NOSE_DEFAULT, rows, tipStart);
+    expect(k.maxDrop).toBeCloseTo(3.1, 1);
+    expect(k.maxTiltDeg).toBeGreaterThan(17);
+    expect(k.maxTiltDeg).toBeLessThan(19);
+    expect(y.maxDrop).toBeLessThan(k.maxDrop - 0.5);
+    expect(y.maxTiltDeg).toBeLessThan(k.maxTiltDeg - 3);
   });
 
   it('inmiş burun çıtalara değmiyor: uç altı 5 mm yukarıda, alt yüz çıtalara paralel', () => {
@@ -58,8 +69,19 @@ describe('plakadan çıtaya iniş', () => {
     }
   });
 
-  it('menteşe ön sıranın ağırlık merkezinin önünde: burun inerken hiçbir tuğla eğilmiyor', () => {
-    for (const x0 of rows) expect(brickPose(NOSE_DEFAULT, x0, tipStart, 1).tilt).toBeCloseTo(0, 9);
+  it('ilk taslakta menteşe ön sıranın ağırlık merkezinin önünde: burun inerken hiçbir tuğla eğilmiyor', () => {
+    for (const x0 of rows) expect(brickPose(NOSE_SHORT, x0, tipStart, 1).tilt).toBeCloseTo(0, 9);
+  });
+
+  it('35 cm burun inerken üstündeki iki sıra burunla birlikte eğilir, geridekiler düz', () => {
+    const a = noseAngle(NOSE_DEFAULT);
+    const hinge = tipStart - NOSE_DEFAULT.noseLen;
+    for (const x0 of rows) {
+      const t = brickPose(NOSE_DEFAULT, x0, tipStart, 1).tilt;
+      if (x0 + TUGLA.boy / 2 > hinge) expect(t).toBeCloseTo(a, 6);
+      else expect(t).toBeCloseTo(0, 9);
+    }
+    expect(rows.filter((x0) => x0 + TUGLA.boy / 2 > hinge)).toHaveLength(2);
   });
 
   it('plakadayken tuğla düz, plaka üstünde', () => {

@@ -11,6 +11,7 @@ import { popupBandX, tableColumnY, type PlanLayout, type Side } from '../sim/geo
 import type { Params } from '../sim/params';
 import { PIT_DEPTH, PLAKA, RANZA, RANZA_AKIS, Z, rackFeetZ } from '../sim/dims';
 import { NOSE_DEFAULT, noseAngle, tipThickness } from '../sim/landing';
+import { buildCombModel, type CombModel } from './comb';
 
 export interface LifterModel {
   platform: THREE.Group;
@@ -33,6 +34,12 @@ export interface StationHandles {
   chains: THREE.Group;
   rack: RackModel;
   lifter: LifterModel;
+  /** Tarak tutucu (2026-11-22): diş takımı (x = strok, z = diş altı), araba (x = strok), alma bandı (tahrikli) */
+  comb: CombModel;
+  combCarriage: THREE.Group;
+  pickBelt: THREE.Group;
+  /** Alırken diş alt ucunun z'si (tampon üstü + 3 cm) */
+  combBaseZ: number;
 }
 
 /** Kaldırıcı platformu ranza ayağı Z = 0'dayken kurulur; silindir kolları birim boylu, Z'de ölçeklenir. */
@@ -176,7 +183,7 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
   const pl = new Parts({
     title: `${name} fırıncı plakası`,
     detail: `${PLAKA.boy} × ${PLAKA.en} cm, toplam ${PLAKA.kalinlik} cm (${PLAKA.profilAdet} adet 40×20×2 kutu profil + üst/alt bant), uçta ~1,4 mm sehim. ` +
-      `Burun makarası Ø${PLAKA.burunCap * 10} mm. Çıtaların ${tr(PLAKA.citaBoslugu * 10)} mm üstünden geçer. Strok ${lay.DX} cm, ${p.vPlate} cm/s; ` +
+      `Son ${PLAKA.burunBoy} cm eğilir burun; uç makarası Ø${tr(PLAKA.burunCap * 10)}, menteşe makarası Ø${tr(PLAKA.menteseCap * 10)} mm. Çıtaların ${tr(PLAKA.citaBoslugu * 10)} mm üstünden geçer. Strok ${lay.DX} cm, ${p.vPlate} cm/s; ` +
       'geri çekilirken bant aynı hızda ileri sarar, tuğla zemine göre durup çıtaya iner. ' +
       `Arkadan iki yana ${PLAKA.kolBoy} cm kol, her kolda ${PLAKA.makaraArasi} cm arayla 2 makara çifti (sarı olan eksantrik milli). Bant motoru arkada, altta.`,
   });
@@ -220,16 +227,17 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
   const plate = pl.build(`${name} plaka düzeneği`);
   group.add(plate);
 
-  // Eğilir burun (2026-11-21): menteşeden uca kama. Düzken üst yüz düz (taşıma), inince alt yüz çıtalara paralel,
-  // üst yüz rampa olur. Uçta Ø20 mm makara, bant menteşe makarasından ve uç makarasından dolanır.
+  // Eğilir burun (2026-11-22: 35 cm, uçta Ø12 makara): menteşeden uca kama. Düzken üst yüz düz (taşıma), inince alt
+  // yüz çıtalara paralel, üst yüz uzun, az eğimli rampa olur. Bant menteşe makarasından ve uç makarasından dolanır.
   const tipT = tipThickness(NOSE_DEFAULT);
   const xt = R0 + PLAKA.boy;
   const rr = NOSE_DEFAULT.rollerDia / 2 + NOSE_DEFAULT.beltThk;
   const nz = new Parts({
     title: `${name} eğilir burun`,
-    detail: `Menteşeli kama, ${NOSE_DEFAULT.noseLen} cm. Ranzaya girerken düz (plakanın tam ${PLAKA.boy} cm'si taşır); geri çekilirken ` +
-      `${tr((noseAngle(NOSE_DEFAULT) * 180) / Math.PI)}° iner: alt yüz çıtaların ${tr(PLAKA.citaBoslugu * 10)} mm üstünde, üst yüz rampa olur. ` +
-      'Tuğlanın burundan inişi yarıya iner (ayrıntı için plakaya dokun). Tahrik (kam / küçük silindir) ve bant gerdirme şematik.',
+    detail: `Menteşeli kama, ${NOSE_DEFAULT.noseLen} cm, uçta Ø${tr(NOSE_DEFAULT.rollerDia * 10)} mm makara. Ranzaya girerken düz (plakanın tam ${PLAKA.boy} cm'si taşır); ` +
+      `strok sonunda servo + metal plakalı kolla ${tr((noseAngle(NOSE_DEFAULT) * 180) / Math.PI)}° iner: alt yüz çıtaların ${tr(PLAKA.citaBoslugu * 10)} mm üstünde, ` +
+      'üst yüz uzun, az eğimli rampa olur; üstündeki iki sıra burunla eğilir. Tuğla ucu 2,3 cm yükseklikten bırakır (ilk taslakta 3,1). ' +
+      'Fizikli ayrıntı yükleme detayı sayfasında. Kol ve bant gerdirme şematik.',
   });
   nz.box(M.plate, xh + 2.3, xt - rr, c - half, c + half, zu - 0.6, zu - 0.3);
   nz.slopeXZ(M.plate, c - half, c + half, xh + 2.3, za + 0.55, xt - rr, zu - tipT + 0.25, 0.5);
@@ -248,6 +256,71 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
   noseMesh.position.set(-xh, -c, -zu);
   nose.add(noseMesh);
   plate.add(nose);
+
+  // ---------- Tarak tutucu (yükleyici, 2026-11-22). Plaka karşılaştırma için duruyor; görünürlüğü motion seçer ----------
+  // Kat plakanın bekleme yerinde (alma bandı) durur; tarak yukarıdan iner, dişler sütun aralıklarına girer, yastıklar
+  // şişer, 5 mm kaldırır, plakanın raylarında ve zincirinde ranzaya girer, çıtaya indirir, söndürür, geri çekilir.
+  const combCols = tableColumnY(lay, side);
+  const tW = lay.W / 2 + 1.5;
+  const toothYs = [combCols[0] - tW, ...combCols.slice(1).map((y, i) => (y + combCols[i]) / 2), combCols[combCols.length - 1] + tW];
+  const layerX0 = R0 + PLAKA.boy - 2 - (4 * lay.L + 3 * 2);
+  const rowsX0 = [0, 1, 2, 3].map((k) => layerX0 + k * (lay.L + 2));
+  const comb = buildCombModel({
+    teeth: toothYs.map((y, i) => ({ y, padNeg: i > 0, padPos: i < toothYs.length - 1 })),
+    x0: layerX0 - 3,
+    x1: rowsX0[3] + lay.L + 1,
+    ht: 1,
+    H: 15,
+    padX: rowsX0.map((x) => [x + 1.5, x + lay.L - 1.5] as [number, number]),
+    padZ0: 0.5,
+    padZ1: 13.5,
+    info: {
+      title: `${name} tarak tutucu`,
+      detail: 'Yükleyici (2026-11-22): arkada ranzanın dışında kalan kiriş, sütun aralıklarında 7 diş. Her diş iki U profil, ' +
+        'araya şişen yastık (~0,06 bar) kauçuk pedleri tuğlanın yan yüzüne bastırır. Tamponda iner, şişirir, 5 mm kaldırır, ranzaya ' +
+        'girer, çıtaya ~1 mm kala bırakır, vakumla söndürür, aynı aralıklardan geri çekilir. Ayrıntı ve ölçümler yükleme detayı sayfasında.',
+    },
+  });
+  const combBaseZ = zu + 3;
+  comb.group.position.z = combBaseZ;
+  comb.group.visible = false;
+  group.add(comb.group);
+  const car = new Parts({
+    title: `${name} tarak arabası`,
+    detail: 'Plakanın kolları, makara çiftleri ve zinciri aynen kullanılır; arabanın üstünde iki düşey kılavuz ve servo tarağı indirip kaldırır.',
+  });
+  for (const v of [-1, 1]) {
+    car.box(M.arm, R0 - PLAKA.kolBoy, R0 - 6, c + v * 50.8, c + v * 51.8, fl - 4.25, fu + 3.25);
+    for (const xr of [R0 - 10, R0 - 10 - PLAKA.makaraArasi]) {
+      car.cyl(xr === R0 - 10 && v === 1 ? M.eccentric : M.follower, 'y', xr, c + v * 53.7, fu, 1.75, 2.6, 14);
+      car.cyl(M.follower, 'y', xr, c + v * 53.7, fl, 1.75, 2.6, 14);
+    }
+    car.box(M.steelDark, R0 - 10, R0 - 7, c + v * 50.8, c + v * 52.8, fl - 4.25, zu + 42);
+  }
+  car.box(M.steelDark, R0 - 10, R0 - 7, c - 52.8, c + 52.8, zu + 39, zu + 42);
+  car.box(M.servo, R0 - 15, R0 - 8, c - 6, c + 6, zu + 33, zu + 42);
+  const combCarriage = car.build(`${name} tarak arabası`);
+  combCarriage.visible = false;
+  group.add(combCarriage);
+  // Alma bandı: tamponun hemen devamı, aynı yükseklikte, KENDİ motoruyla dönen bant (tamponun ikinci bölgesi). Kat
+  // tampondan geçerken iki bant aynı hızda döner (tuğlalar birbirini itmez, 2 cm aralık korunur); tarak tutarken durur,
+  // bu sırada sıradaki kat tamponda bekler.
+  const pk = new Parts({
+    title: `${name} alma bandı`,
+    detail: 'Tamponun devamı, aynı yükseklikte, kendi motoruyla dönen bant (tamponun 2. bölgesi). Kat tampondan geçerken iki bant ' +
+      'aynı hızda döner, tuğlalar birbirini itmez; tarak tutarken durur, sıradaki kat tamponda bekler. Tuğla sabit yüzeyde itilmez.',
+  });
+  pk.belt(M.beltA, R0 + 0.5, R0 + PLAKA.boy, c - 49, c + 49, zu, 3, 16);
+  for (const v of [-1, 1]) pk.box(M.frame, R0 + 1, R0 + PLAKA.boy - 8, c + v * 49.2, c + v * 50.4, zu - 9.5, zu - 3);
+  for (const x of [R0 + 4, R0 + PLAKA.boy - 12]) {
+    pk.box(M.frame, x, x + 3, c - 49.2, c + 49.2, zu - 12, zu - 9.5);
+    for (const v of [-1, 1]) pk.box(M.frame, x, x + 4, c + v * 45, c + v * 49, 0, zu - 9.5);
+  }
+  pk.box(M.motor, R0 + 20, R0 + 32, out(-50.6), out(-61), zu - 14, zu - 4);
+  pk.box(M.frame, R0 + 23, R0 + 29, out(-49.2), out(-50.6), zu - 10, zu - 6);
+  const pickBelt = pk.build(`${name} alma bandı`);
+  pickBelt.visible = false;
+  group.add(pickBelt);
 
   // ---------- Ranza ve kaldırıcı ----------
   const rx0 = lay.RK0;
@@ -327,8 +400,11 @@ export function buildStation(lay: PlanLayout, p: Readonly<Params>, side: Side, l
 
   labels.push({ text: `${name} tablası`, pos: [(tx0 + tx1) / 2, c, zr + 26] });
   if (lay.BL > 0) labels.push({ text: `Tampon ${name}`, pos: [lay.BUF0 + lay.BL / 2 - 10, c, zr + 26] });
-  labels.push({ text: `Plaka ${name}`, pos: [R0 + PLAKA.boy / 2, c, zr + 30] });
+  labels.push({ text: `Yükleyici ${name}`, pos: [R0 + PLAKA.boy / 2, c, zr + 30] });
   labels.push({ text: `Ranza ${name} · boş`, pos: [(rx0 + rx1) / 2, c, rackFeetZ(0) + RANZA.cerceveYuk + 26], key: `rack${side}` });
 
-  return { group, handles: { side, tablePopup, plate, nose, noseDown: noseAngle(NOSE_DEFAULT), chains, rack, lifter } };
+  return {
+    group,
+    handles: { side, tablePopup, plate, nose, noseDown: noseAngle(NOSE_DEFAULT), chains, rack, lifter, comb, combCarriage, pickBelt, combBaseZ },
+  };
 }

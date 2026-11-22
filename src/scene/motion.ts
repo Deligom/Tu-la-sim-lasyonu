@@ -18,6 +18,7 @@ import type { SimState } from '../sim/model';
 import { POP_INIS, POP_KALKIS, RACK_FEET_LOW, RANZA, RANZA_AKIS, TUGLA, Z } from '../sim/dims';
 import { swapElapsed, swapView } from '../sim/swapview';
 import { NOSE_DEFAULT, brickPose, checkLanding, type LandingConfig, type LandingResult, type NoseKind } from '../sim/landing';
+import type { LoaderKind } from '../phys/config';
 
 export interface Motion {
   /** Durumu sahneye yansıt. Bir şey değiştiyse true. */
@@ -27,6 +28,8 @@ export interface Motion {
   setNose(k: NoseKind): LandingResult;
   /** Şu anki burun ve çıta tipiyle iniş ölçümü */
   landing(): LandingResult;
+  /** Yükleyici: bantlı plaka ya da tarak tutucu (aday) */
+  setLoader(k: LoaderKind): void;
   /** Dinamik etiket yazıları (anahtar → yazı) */
   labelTexts(): Map<string, string>;
   /** Dokunarak seçilebilen hareketli nesneler */
@@ -203,6 +206,9 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
   });
   const tamponStrips = sideC.map((c) => (lay.BL > 0 ? addStrip(fx, beltTex, lay.BUF0 + (lay.BL - 1) / 2, c, Z.tampon + 0.04, lay.BL - 7, 97, 25) : null));
   const plateStrips = plant.stations.map((st) => addStrip(st.plate, beltTex, lay.PL0 + 2.3 + 42.3, sideC[st.side], Z.plakaUst + 0.04, 84.6, 97.5, 12));
+  // tarak: alma bandı (tamponun 2. bölgesi) — kat üstüne gelirken tamponla aynı hızda döner
+  const pickStrips = plant.stations.map((st) => addStrip(st.pickBelt, beltTex, lay.PL0 + 44.25, sideC[st.side], Z.plakaUst + 0.04, lay.PLEN - 7, 97, 25));
+  const lastFront = [Number.NaN, Number.NaN];
 
   // ---------- ranza havuzu ----------
   const mkRack = (name: string) => {
@@ -264,10 +270,18 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
 
   const setSlat = (r: RackModel, reject: boolean) => r.setSlatType(reject ? 'dik' : defaultSlat);
 
-  // Eğilir burun: girişin son 2 cm'sinde iner (menteşe ön sıranın ağırlık merkezinin önünde, tuğla oynamaz),
-  // geri çekilirken bütün tuğlalar indikten sonra, plaka ranzadan çıkarken kalkar.
+  // Eğilir burun (35 cm): girişin son 2 cm'sinde iner (~5°, üstündeki iki sıra burunla eğilir), geri çekilirken
+  // bütün tuğlalar indikten sonra, plaka ranzadan çıkarken kalkar.
   let nose: NoseKind = NOSE_DEFAULT.nose;
   const noseK = [0, 0];
+  // Tarak tutucu: zamanlama 2D modelin plaka evrelerinden (alma → giriş → geri çekilme). Tamponda inme / şişirme
+  // tweenle; ranzada indirme girişin son 4 cm'sine sıkıştırıldı (fizikli ayrıntı yükleme detayı sayfasında).
+  let loader: LoaderKind = 'tarak';
+  const combDown = [0, 0];
+  const combInfl = [0, 0];
+  /** Ranzada indirme oranı ve indirme yolu (tuğla altı plaka üstünden aktif çıtanın 1 mm üstüne) */
+  const combLowerK = (px: number) => smooth((px - (lay.DX - 4)) / 4);
+  const COMB_DROP = Z.plakaUst - Z.aktifCita - 0.1;
   const landCfg = (): LandingConfig => ({ ...NOSE_DEFAULT, nose, slat: defaultSlat });
   const rowsX0 = pattern[0].filter((_, i) => i % 6 === 0).map((b) => b.dx);
   const landing = () => checkLanding(landCfg(), rowsX0, lay.PL0 + lay.DX + lay.PLEN - lay.RK0);
@@ -330,12 +344,22 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
           const s = (b.cy ?? 0) > 0 ? 0 : 1;
           const pl = S.sides[s].plate;
           const y = b.cy ?? 0;
-          if (pl.phase !== 'retract') {
+          if (loader === 'tarak') {
+            let z = Z.plakaUst;
+            if (pl.phase === 'insert') {
+              const k = combLowerK(pl.px);
+              z = Z.plakaUst + 0.5 * (1 - k) - COMB_DROP * k;
+            } else if (pl.phase === 'retract') z = Z.aktifCita;
+            put(b.x, L, y, z, LANE[b.lane]);
+            break;
+          }
+          // Burun inerken (girişin son 2 cm'si) üstündeki tuğlalar burunla birlikte eğilir; geri çekilirken bant sarar,
+          // tuğla yerinde durur, altından plaka → burun → çıta geçer. Duruş, iniş ölçümüyle aynı modelden
+          // (src/sim/landing.ts): destek noktalarının üst zarfına oturan katı cisim.
+          if (pl.phase !== 'retract' && !(pl.phase === 'insert' && noseK[s] > 0)) {
             put(b.x, L, y, Z.plakaUst, LANE[b.lane]);
             break;
           }
-          // Geri çekilirken bant sarar: tuğla yerinde durur, altından plaka → burun → çıta geçer. Duruş, iniş
-          // ölçümüyle aynı modelden (src/sim/landing.ts): destek noktalarının üst zarfına oturan katı cisim.
           const tip = lay.PL0 + pl.px + lay.PLEN - lay.RK0;
           const pose = brickPose(landCfg(), b.x - lay.RK0, tip, noseK[s]);
           put(b.x, L, y, Z.aktifCita + pose.zFront, LANE[b.lane], pose.tilt);
@@ -366,6 +390,11 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
       } else lastBack[s] = NaN;
       const ps = plateStrips[s];
       ps.tex.offset.x = -sd.plate.belt / ps.period;
+      const pk = pickStrips[s];
+      if (g && sd.plate.phase === 'ready' && g.front > lay.PL0) {
+        if (!Number.isNaN(lastFront[s]) && g.front > lastFront[s] && g.front - lastFront[s] < 60) pk.tex.offset.x -= (g.front - lastFront[s]) / pk.period;
+        lastFront[s] = g.front;
+      } else lastFront[s] = Number.NaN;
     });
 
     // 4) pop-up, tabla pop-up, kapaklar, iticiler, tel demeti
@@ -395,6 +424,18 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
       const yIn = c + sy * RANZA_AKIS.girisY;
       const name = s === 0 ? 'A' : 'B';
       st.plate.position.x = sd.plate.px;
+      if (loader === 'tarak') {
+        const pl = sd.plate;
+        combDown[s] += ((pl.phase === 'ready' ? 0 : 1) - combDown[s]) * Math.min(1, dt / 0.2);
+        if (pl.phase === 'retract') combInfl[s] = 1 - smooth((lay.DX - pl.px) / 2);
+        else if (pl.phase === 'ready') combInfl[s] = 0;
+        else if (combDown[s] > 0.95) combInfl[s] = Math.min(1, combInfl[s] + dt / 0.25);
+        const k = pl.phase === 'insert' ? combLowerK(pl.px) : pl.phase === 'retract' ? 1 : 0;
+        const lift = pl.phase === 'insert' ? 0.5 * (1 - k) : 0;
+        st.comb.group.position.set(pl.px, 0, st.combBaseZ + 18 * (1 - smooth(combDown[s])) + lift - COMB_DROP * k);
+        st.comb.setInfl(combInfl[s]);
+        st.combCarriage.position.x = pl.px;
+      }
 
       const E = swapElapsed(rk.phase, rk.timer, rk.levels, rk.lift, rk.target, v, Ts);
       const logicPushed = E >= 0 && rk.phase !== 'swap';
@@ -515,6 +556,14 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
     return true;
   }
 
+  const showLoader = () => {
+    for (const st of plant.stations) {
+      st.plate.visible = loader === 'plaka';
+      st.comb.group.visible = st.combCarriage.visible = st.pickBelt.visible = loader === 'tarak';
+    }
+  };
+  showLoader();
+
   return {
     update,
     setDefaultSlat(t) {
@@ -536,6 +585,15 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
       return landing();
     },
     landing,
+    setLoader(k) {
+      loader = k;
+      showLoader();
+      if (lastS) {
+        const S = lastS;
+        lastT = Number.NaN;
+        update(S);
+      }
+    },
     pickables: [inst, fx],
     prepPick() {
       inst.computeBoundingSphere();

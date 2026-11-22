@@ -25,18 +25,21 @@ export interface LandingConfig {
 }
 
 /**
- * Eğilir burun taslağı (2026-11-21): 11 cm, Ø20 mm uç makarası. 11 cm'de menteşe ön sıradaki tuğlanın ağırlık
- * merkezinin önünde kalır: burun inerken hiçbir tuğla oynamaz, inme strokun son santimlerinde yapılabilir.
+ * Eğilir burun (2026-11-22): 35 cm, Ø12 mm uç makarası (PLAKA). Menteşe 2. sıranın altında: burun inerken (~5°)
+ * 1. sıra ve 2. sıranın burun üstündeki kısmı burunla birlikte eğilir. İlk taslak 11 cm / Ø20 idi (`NOSE_SHORT`).
  */
 export const NOSE_DEFAULT: LandingConfig = {
   nose: 'egilir',
-  noseLen: 11,
+  noseLen: PLAKA.burunBoy,
   rollerDia: PLAKA.burunCap,
   beltThk: 0.3,
   clearance: PLAKA.citaBoslugu,
   plateThk: PLAKA.kalinlik,
   slat: 'paralel',
 };
+
+/** İlk taslak (2026-11-21): 11 cm burun, Ø20 uç makarası. Karşılaştırma için. */
+export const NOSE_SHORT: LandingConfig = { ...NOSE_DEFAULT, noseLen: 11, rollerDia: 2 };
 
 /** Plaka üstü (bant yüzeyi) çıta üstünden ne kadar yukarıda */
 export const topHeight = (c: LandingConfig) => c.clearance + c.plateThk;

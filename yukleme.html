@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Yükleme Detayı</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#e4e1d9">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+</head>
+<body>
+<div id="app" class="detail">
+  <div id="view" aria-label="Plakadan çıtaya inişin 3D görünümü"></div>
+
+  <header id="hud">
+    <div class="brand">
+      <span class="eyebrow">Yükleme detayı · fizikli iniş</span>
+      <span class="stage">24 yaş tuğla · tampondan ranza çıtasına</span>
+    </div>
+    <div class="clock" aria-live="off">
+      <span class="t" id="tNow">0,00 s</span>
+      <span class="s" id="phase">–</span>
+      <span class="s" id="calc">–</span>
+      <span class="bar"><span id="progress"></span></span>
+    </div>
+  </header>
+
+  <section id="info" hidden aria-live="polite">
+    <div class="info-text">
+      <div class="info-title" id="infoTitle"></div>
+      <div class="info-grid" id="infoDetail"></div>
+      <div class="chart-wrap"><canvas id="chart" aria-label="Seçili tuğlanın eğimi ve temas kuvvetleri, zamana göre"></canvas></div>
+    </div>
+    <button id="infoClose" class="icon" type="button" aria-label="Kartı kapat">×</button>
+  </section>
+
+  <aside id="sheet" aria-label="Sonuçlar ve ayarlar">
+    <div class="sheet-head">
+      <div class="seg" id="tabs" role="tablist">
+        <button type="button" data-tab="sonuc" class="on" role="tab" aria-selected="true">Sonuçlar</button>
+        <button type="button" data-tab="ayar" role="tab" aria-selected="false">Ayarlar</button>
+      </div>
+      <button id="sheetClose" class="icon" type="button" aria-label="Paneli kapat">×</button>
+    </div>
+    <div class="sheet-body">
+      <div id="tabSonuc">
+        <div id="results"></div>
+        <div class="legend" id="legend" data-mode="iz">
+          <span class="lg iz"><i class="sw" style="background:#b6633f"></i>iz yok <i class="sw" style="background:#e3a52b"></i>1 mm <i class="sw" style="background:#d2362c"></i>≥ 3 mm kenar ezilmesi</span>
+          <span class="lg sira">Renk koyudan açığa: 1. sıra (dipte) → 4. sıra</span>
+          <span class="lg temas">Kırmızı: o anda komşu tuğlaya basıyor</span>
+        </div>
+        <div class="note">
+          <b>Model.</b> Tuğlalar 6 serbestlik dereceli katı cisim; yaş kil teması yumuşak köşe modeliyle: yüzlerde ve
+          kenarlarda basınç = k × batma, akma basıncında kalıcı ezilme, boşaltmada sert geri dönüş (iz kalır, sekmez).
+          Plaka: bant menteşe ve uç makarasının etrafında gerçek hızıyla akar; sürtünme yapışma–kayma; sehim yüklerden.
+          Tarak: pedler sabit basınçla iter (kuvvet = basınç × alan), ped sürtünmesi kayma ve burulmaya direnir;
+          dişler rijit, alt uçları 45° pahlı; tarak tamponda iner, ranzada son 1 cm'yi yavaş iner.
+          <br><b>Kil sayıları tahmin.</b> Sahada yaş tuğlayı 1, 3 ve 5,5 cm'den düz ve 17° eğik çıtaya bırakıp iz derinliğini
+          ölçün: k ve akma basıncı buradan ayarlanır (Ayarlar).
+        </div>
+      </div>
+      <div id="tabAyar" hidden>
+        <div id="ayarForm" class="form"></div>
+        <p class="muted" id="changed"></p>
+        <div class="row">
+          <button id="bCalc" type="button" class="primary">Yeniden hesapla</button>
+          <button id="bDefault" type="button">Varsayılana dön</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <footer id="dock">
+    <div class="row play">
+      <button id="bPlay" type="button" class="primary">Durdur</button>
+      <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Zaman çizelgesi">
+      <div class="seg" id="speeds" role="group" aria-label="Oynatma hızı">
+        <button type="button" data-speed="0.1">0,1×</button>
+        <button type="button" data-speed="0.25" class="on" aria-pressed="true">¼×</button>
+        <button type="button" data-speed="1">1×</button>
+      </div>
+    </div>
+    <div class="row cams" id="cams" role="group" aria-label="Kamera açısı"></div>
+    <div class="row opts">
+      <div class="seg" id="colors" role="group" aria-label="Tuğla rengi">
+        <button type="button" data-mode="iz" class="on" aria-pressed="true">İz</button>
+        <button type="button" data-mode="sira">Sıra</button>
+        <button type="button" data-mode="temas">Temas</button>
+      </div>
+      <button id="bCol" type="button" class="toggle">Sütun: hepsi</button>
+      <button id="bSheet" type="button" aria-expanded="false" aria-controls="sheet">Sonuçlar · ayarlar</button>
+    </div>
+  </footer>
+</div>
+<script type="module" src="./src/detail/main.ts"></script>
+</body>
+</html>

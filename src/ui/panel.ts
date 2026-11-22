@@ -108,6 +108,28 @@ export function initPanel(loop: SimLoop, viewer: Viewer, sim: Simulation) {
     landingCard();
   });
 
+  // Yükleyici: tarak tutucu (2026-11-22 kesin) ↔ önceki bantlı plaka (karşılaştırma)
+  let loader: 'plaka' | 'tarak' = 'tarak';
+  const bLoader = $<HTMLButtonElement>('bLoader');
+  bLoader.addEventListener('click', () => {
+    loader = loader === 'plaka' ? 'tarak' : 'plaka';
+    viewer.setLoader(loader);
+    bLoader.textContent = `Yükleyici: ${loader === 'tarak' ? 'tarak' : 'plaka (önceki)'}`;
+    bLoader.classList.toggle('on', loader === 'tarak');
+    bLoader.setAttribute('aria-pressed', String(loader === 'tarak'));
+    bNose.disabled = loader === 'tarak';
+    if (loader === 'tarak') {
+      showCard(
+        'Tarak tutucu (yükleyici)',
+        'Dişler sütun aralıklarına iner, yastıklar şişip tuğlaları yandan tutar (~0,06 bar), tarak plakanın raylarında ' +
+          've zincirinde ranzaya girer, tuğlaları çıtanın ~1 mm üstüne indirip bırakır, aynı aralıklardan geri çekilir. Fizikli ' +
+          'simülasyonda: çıtaya ~9 cm/s oturma, 0° eğim, komşu teması yok, sıra aralığı korunuyor. Ayrıntı ve ayarlar yükleme detayı ' +
+          'sayfasında. Bu sahnede zamanlama 2D modelin plaka evrelerinden; ranzada indirme girişin son 4 cm\'sine sıkıştırıldı.',
+      );
+    } else landingCard();
+    lastShown = -1;
+  });
+
   const bNose = $<HTMLButtonElement>('bNose');
   bNose.addEventListener('click', () => {
     nose = nose === 'egilir' ? 'sabit' : 'egilir';
@@ -147,7 +169,8 @@ export function initPanel(loop: SimLoop, viewer: Viewer, sim: Simulation) {
       simSteps.textContent = `${fmtInt(loop.steps)} adım × ${DT * 1000} ms`;
       const s = summarize(sim.S);
       simStats.textContent = `${s.perMin === null ? '–' : Math.round(s.perMin)}/dk · temas ${s.contacts} · taşan ${s.lost}`;
-      simStats2.textContent = `kat ${s.levels} · ranza ${s.racks} · iniş ${num(land.maxDrop)} cm${s.anomaly ? ' · ⚠ hata' : ''}`;
+      const inis = loader === 'tarak' ? 'iniş ~0,1 cm (tarak)' : `iniş ${num(land.maxDrop)} cm`;
+      simStats2.textContent = `kat ${s.levels} · ranza ${s.racks} · ${inis}${s.anomaly ? ' · ⚠ hata' : ''}`;
       simStats.classList.toggle('bad', s.contacts > 0 || s.lost > 0);
     },
   };

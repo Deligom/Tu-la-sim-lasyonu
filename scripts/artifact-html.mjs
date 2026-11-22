@@ -1,10 +1,12 @@
-// dist/index.html (tek dosya) → dist/onizleme.html: claude.ai önizleme sayfası biçimi.
+// Tek dosyalık derleme → claude.ai önizleme sayfası biçimi. Kullanım: node scripts/artifact-html.mjs <girdi> <çıktı>
+// (varsayılan dist/index.html → dist/onizleme.html).
 // Önizleme platformu <html>/<head>/<body> iskeletini kendisi ekliyor; burada yalnızca başlık, meta,
 // yazı tipi bağlantıları, stil, gövde ve betik bırakılıyor.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const src = readFileSync('dist/index.html', 'utf8');
+const [inPath = 'dist/index.html', outPath = 'dist/onizleme.html'] = process.argv.slice(2);
+const src = readFileSync(inPath, 'utf8');
 const pick = (re) => [...src.matchAll(re)].map((m) => m[0]);
 
 const title = pick(/<title>[\s\S]*?<\/title>/g);
@@ -21,5 +23,5 @@ if (!title.length || !styles.length || !scripts.length || !bodyNoScripts) {
 }
 
 const out = [...title, ...metas, ...links, ...styles, bodyNoScripts, ...scripts].join('\n');
-writeFileSync('dist/onizleme.html', out);
-console.log(`dist/onizleme.html yazıldı (${(out.length / 1024).toFixed(0)} KB)`);
+writeFileSync(outPath, out);
+console.log(`${outPath} yazıldı (${(out.length / 1024).toFixed(0)} KB)`);

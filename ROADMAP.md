@@ -2,26 +2,93 @@
 
 Her aşama bitince bu dosyayı güncelle (✅ / notlar). Bir aşamayı bitirmeden sonrakine geçme.
 
-**Telefon önizlemesi:** https://claude.ai/artifact/PD6tnqViXV7VJ1bVX8zdWw (özel link; `npm run build` →
-`dist/onizleme.html` aynı adrese yeniden yayınlanır, başka bir oturumdan güncellerken bu URL verilmeli).
+**Telefon önizlemeleri** (özel linkler; `npm run build` iki dosyayı üretir, başka bir oturumdan güncellerken URL verilmeli):
+- Hat simülasyonu: https://claude.ai/artifact/PD6tnqViXV7VJ1bVX8zdWw ← `dist/onizleme.html`
+- Yükleme detayı (fizikli iniş): https://claude.ai/artifact/8V3gBSZMA3UBitj5BCFGpd ← `dist-yukleme/onizleme.html`
 
-## Devam notu (2026-11-21) — yeni sohbet buradan başlasın
+## Devam notu (2026-11-22) — yeni sohbet buradan başlasın
 - Depo: `Deligom/Tu-la-sim-lasyonu`, dal: `claude/adoring-cannon-pyibnj` (main'e birleştirilmedi). Önce `CLAUDE.md`,
-  sonra bu dosya. `npm install && npm test` (50 test), `npm run dev` (geliştirme), `npm run build` (önizleme dosyası).
-- Bitenler: Aşama 0–3, Aşama 5'in iniş kısmı (eğilir burun). Sıradakiler: Aşama 4 (arayüz) ya da Aşama 5'in kalanı
-  (plaka sehimi / üst kata boşluk, makara çifti kuvvetleri). Aşama 6 (yığma tuğla) tasarımı açık.
-- Kullanıcıdan cevap bekleyenler: (1) eğilir burunda uç makarası inikken çıtada yuvarlansın mı (iniş 3,1 → 2,6 cm),
-  Ø12 makara olur mu; (2) burnu ne indirecek (kam mili / ince silindir / bağlantı çubuğu), bant gerdirme;
-  (3) sıradaki iş hangisi.
-- Son konu: kullanıcı ekran görüntüsünde burnu geçen tuğlanın hâlâ eğildiğini gördü ve **ayrıntılı, fizikli bir yükleme
-  simülasyonu** istiyor (Blender önerdi). Şu anki model (`src/sim/landing.ts`) yarı-statik katı cisim: darbe, sekme,
-  kayma, yaş kilin ezilmesi yok. Konuşulacak seçenekler: (a) aynı depoda ayrı bir "yükleme detayı" sayfası, tarayıcıda
-  fizik motoru (ör. Rapier / cannon-es) ile plaka–burun–çıta–tuğla, darbe hızı ve eğim ölçümü, parametreler bizim
-  sayılarımızdan; (b) Blender rigid body: görsel ve video için iyi, ama parametrelerimize bağlı değil, yineleme yavaş;
-  (c) her durumda: sahada gerçek yaş tuğlayı 3 cm ve 5,5 cm'den çıtaya düşürme denemesi (ezilme sınırı için en güvenilir veri).
+  sonra bu dosya. `npm install && npm test` (71 test), `npm run dev` (`/` hat, `/yukleme.html` yükleme detayı),
+  `npm run build` (iki önizleme dosyası). Fizik senaryoları: `npx tsx scripts/phys-cmp.ts [tarak|genel|burun]`, düşürme:
+  `npx tsx scripts/phys-drop.ts`.
+- Bitenler: Aşama 0–3; Aşama 5'in iniş kısmı: yarı-statik kontrol (`src/sim/landing.ts`, ana sahnede) + **fizikli yükleme
+  detayı** (`yukleme.html`, aşağıda) + **tarak tutucu**.
+- **KARAR (2026-11-22, kullanıcı): yükleyici tarak tutucu** (CLAUDE.md #11). Fizikte, detay sayfasında ve ana sahnede
+  varsayılan; bantlı plaka "önceki tasarım" olarak karşılaştırma için duruyor (CLAUDE.md'de ayrı bölüm, ana sahnede
+  "Yükleyici" düğmesi, testlerde `loader: 'plaka'`). 2D mantık modeli (ve eşdeğerlik testleri) plaka evreleriyle kaldı;
+  kapasite kontrolü: yükleyici çevrimi ~8,8 s'ye kadar hat taşmıyor, tarak 50 cm/s'de 6,3 s. Dik çıtalı ranzada da tarak
+  tuğlayı düz koyuyor (0°, 0,07 mm; plakada 9,7°, 2,4 mm).
+- **Alma bandı (2026-11-22/23):** kullanıcı, tarağın altındaki yer sabitse arkadan gelen katın aralıkları kapatacağını
+  fark etti. Mantık zaten katı bütün olarak taşıyordu (tahrikli bant gibi); çizim düzeltildi: alma bandı kendi motoruyla
+  dönen bant, kat geçerken tamponla aynı hızda döner. **Karar: tampon + alma bandı iki ayrı bölge** (tek uzun bant değil;
+  CLAUDE.md #10). Geçişte iki bandın hızı eşit olmalı.
+- **En son konu (2026-11-22): tarak tutucu.** Kullanıcı bantlı plaka yerine tuğlaları yandan, sütun aralıklarına giren ve
+  şişen yastıkla açılan U profillerle tutmayı önerdi; arkadan tek kirişe bağlı tarak olarak kuruldu ve simüle edildi
+  (`src/phys` tarak modu, `src/scene/comb.ts`, ana sahne + detay sayfası). Sonuç (kil / ped sayıları tahmin):
+
+  | Senaryo | Tutma güvenliği | Oturma cm/s | Eğim ° | Kenar mm | Pedde kayma mm | Diş teması N | Komşu N | Sıra arası mm | Çevrim s |
+  |---|---|---|---|---|---|---|---|---|---|
+  | Tarak, varsayılan (0,06 bar, μ 0,4) | 2,8 | 9 | 0,0 | 0,08 | 0 | 0 | 0 | 20 | 6,3 |
+  | Sütun hizasızlığı 4 mm | 2,8 | 9 | 0,0 | 0,37 | 0 | 0 | 0 | 20 | 6,3 |
+  | Sütun hizasızlığı 8 mm (aralık 17 mm < diş) | 2,8 | 9 | 0,0 | 2,73 | 0,1 | 569 | 0 | 20 | 6,3 |
+  | Ped sürtünmesi 0,15 | 1,1 | 10 | 0,0 | 0,08 | 38,9 | 0 | 0 | 20 | 6,3 |
+  | 0,02 bar (yetersiz) | 0,9 | 37 | 1,5 | 0,90 | 258 | 0 | 6 | 2 | 6,3 |
+  | Çıta yükseklik ±4 mm | 2,8 | 6 | 0,1 | 1,28 | 5,2 | 43 | 0 | 20 | 6,3 |
+  | Bırakma 5 mm | 2,8 | 26 | 0,0 | 0,24 | 0 | 0 | 0 | 20 | 6,3 |
+  | 80 cm/s, 4 m/s² | 2,7 | 9 | 0,0 | 0,08 | 0 | 0 | 0 | 20 | 4,7 |
+
+  Karşılaştırma: bantlı plaka (35 cm burun) 48 cm/s, 10°, 2,2 mm, komşuya 92 N, sıra arası 13 mm. Tarakla iniş, eğilme ve
+  komşu teması fiilen kalkıyor; sıra aralığı sorusu da kalkıyor (2 cm yeter). Tarakta kritik olanlar: sütun aralıklarının
+  hizası (kamera), basınç / sürtünme (basınç sensörü + yük hücresi), çıta yüksekliği (lazerle ölçüp indirme ayarı).
+  Modelde: pedler sabit basınçla iter, ped sürtünmesi kayma ve burulmaya direnir (burulma eklenmeden tuğla pedler arasında
+  sallanıyordu), dişler rijit ve pahlı. Ana sahnede zamanlama 2D modelin plaka evrelerinden: ranzada indirme girişin son
+  4 cm'sine sıkıştırıldı, tamponda inme/şişirme tweenle (2D mantık ve testler değişmedi).
+- **Bu oturumun kararları** (CLAUDE.md #11'e işlendi):
+  - Burnu servoya bağlı metal plakalı kol indirir. Uç makarası çıtaya değmez (alt bant 2× hızla ters gider), 5 mm kalır.
+  - **Burun 35 cm, uç makarası Ø12, plaka 5 cm** (kullanıcı seçti). Ölçüler `PLAKA.burunBoy / burunCap / menteseCap`;
+    ana sahne, yarı-statik hesap ve fizik sayfası buradan okur. Ana sahnede burun inerken üstündeki iki sıra eğilir.
+- **Neden** (fizikli simülasyon, kil sayıları tahmin; `scripts/phys-cmp.ts burun`): ilk taslakta (11 cm, Ø20) tuğla menteşe
+  makarası üstünden *dinamik* devriliyordu (27°, 79 cm/s; yarı-statik 18°), 25 cm/s'de daha kötü (35°). Her sıra önündeki
+  sıraya dayanıyordu (279 N, ~3,7 mm iz, sıra aralığı 20 → 3 mm). Belirleyici: ağırlık merkezi ucu geçtiğinde ön kenarın
+  çıtadan yüksekliği. Uzun burunda tuğla rampadan yavaşça iner, Ø12 makara ucu 3,1 → 2,3 cm'ye indirir:
+
+  | Tasarım | Eğim ° (en çok) | Çarpma cm/s | Kenar mm | Komşu N | Sıra arası mm | Bant–çıta mm |
+  |---|---|---|---|---|---|---|
+  | İlk taslak: 5 cm, burun 11 cm, Ø20 | 27 | 79 | 3,9 | 279 | 3 | 3,2 |
+  | 5 cm, burun 30 cm, Ø20 | 13 | 51 | 2,9 | 98 | 13 | 3,2 |
+  | **Varsayılan: 5 cm, burun 35 cm, uç Ø12 (β 5,4°)** | **10** | **48** | **2,2** | **92** | **13** | **3,2** |
+  | 3 cm, burun 35 cm, uç Ø12, sehim 1,8 mm | 9 | 50 | 2,3 | 99 | 18 | 2,6 |
+  | 3 cm, sabit burun, Ø12 | 13 | 66 | 3,9 | 58 | 14 | 4,1 |
+  | 2,5 cm, burun 35 cm, sehim 3,6 mm | 8 | 49 | 2,1 | 103 | 16 | 0,2 |
+
+  - Sabit burunda küçük makara işe yaramıyor (makaranın üstü plaka üstüyle aynı hizada, uç alçalmıyor): menteşe şart.
+  - Sehim (konsol, tuğla yükü): 5 cm = 10 dik 40×20×2 → 1,4 mm, 16 kg; 3 cm = 24 yatık 40×20×2 → ~1,8 mm, 39 kg;
+    2,5 cm ~3,6 mm; 2 cm dolu sac ~4,3 mm + 88 kg kendi ağırlığı. 3 cm'nin altında sehim 5 mm boşluğu yiyor.
+  - Uzun burun: 1. sıra ve 2. sıranın bir kısmı burnun üstünde; burun inerken (~5°) eğilirler, kaymazlar. Servo kolu bu
+    yükü (≈ 25–35 kg, menteşeye göre ~50–60 N·m) taşımalı.
+  - Hâlâ her sıra önündekine hafifçe değiyor (~90 N, ~1,9 mm iz; eğim 6–10° iken üst kenar ~2–3 cm öne gelir, aralık
+    2 cm). Tamamen kaldırmak için sıra aralığı (ör. 3 cm: 4 × 19 + 3 × 3 = 85 cm, ranza iç derinliğine tam sığar) ya da uç
+    yüksekliği konuşulmalı.
+- **Sıra aralığı denemesi (2026-11-22, kullanıcı istedi; yalnızca fizik sayfasında, `rowGap`):** ön sıra plaka ucunun
+  2 cm gerisinde kalır, kat arkaya uzar.
+
+  | Aralık | Komşu kuvveti, en çok | Tuğla–tuğla izi | Temas anındaki eğim | İnişten sonra en dar aralık |
+  |---|---|---|---|---|
+  | 2 cm (hat) | 92 N | 1,9 mm | ~5,5° | 13 mm |
+  | 3 cm | 55 N | 1,4 mm | ~7° | 27 mm |
+  | 3,5 cm (plakaya sığmıyor) | 137 N | – | ~8,5° | – |
+
+  Temas kalkmıyor: tuğla inerken eğilip önündeki sıraya değiyor; aralık büyüdükçe daha çok eğilip daha sert çarpıyor.
+  Tamamen kaldırmak için ~4,5 cm gerekir, 88 cm plakaya sığmaz. 3 cm, kuvveti ~%40 azaltıyor ve sıraları düzgün
+  bırakıyor. Hatta uygulamak: ön hazırlık servosu +3 cm, ön hazırlık 88 cm, tabla 85 cm derinlik, kat plakada arkaya
+  1 cm pay; 2D referans (`referans-2d-simulasyon.html`) 2 cm'ye bağlı, eşdeğerlik testleri için orada da değişmeli.
+- Kullanıcıyla konuşulacaklar / sıradaki işler: (0) ped – yaş kil sürtünmesi sahada ölçülecek (kullanıcı ~3 hafta
+  Ankara'da; isterse seramik çamuruyla ön deneme); tarağın ayrıntıları: düşey eksen, araba ve makara çifti kuvvetleri,
+  diş / kiriş dayanımı, kamera ile aralık kontrolü; dik çıtalı ranza red kuralı kalsın mı (tarakla gereksiz olabilir);
+  (1) sıra aralığı 2 cm kalıyor (tarakla komşu teması yok);
+  (2) **sahada düşürme denemesi**: yaş tuğlayı 1, 3, 5,5 cm'den düz ve 17° eğik çıtaya bırakıp iz derinliğini ölçmek →
+  `kW` ve `pY` buradan ayarlanır; (3) servo kolunun ölçüleri; (4) sıradaki iş: Aşama 4 (arayüz), Aşama 5'in kalanı, Aşama 6.
 - Fabrika fotoğrafları depoda yok (depo herkese açık); gerekirse kullanıcı yeniden yükler. Ölçüleri CLAUDE.md'de.
-- Telefon önizlemesi: https://claude.ai/artifact/PD6tnqViXV7VJ1bVX8zdWw (`npm run build` → `dist/onizleme.html`,
-  aynı adrese bu URL verilerek yayınlanır).
 
 ## Aşama 0 — Kurulum ✅ (2026-11-18)
 - [x] Vite + TypeScript + Three.js projesi; `src/sim/` (mantık), `src/scene/` (3D), `src/ui/` (panel).
@@ -144,7 +211,7 @@ bıraktığı boş ranza kuyruğa atlıyor (konveyörde yürümüyor); AGV'ler a
   destek yüzeyine (plaka → burun → çıta) oturan yarı-statik katı cisim; duruş = destek noktalarının üst dışbükey
   zarfı. Bir adımda köşenin ani düşüşü = devrilme / düşme. Sahnedeki tuğla duruşu aynı fonksiyondan.
   - Sabit burun: ön kenar 5,5 cm düşüyor, ~30° devriliyor.
-  - **Eğilir burun** (kullanıcı önerisi, CLAUDE.md #11): 11 cm menteşeli kama, strokun son 2 cm'sinde ~13° iner, alt
+  - **Eğilir burun, ilk taslak** (2026-11-22'de 35 cm / Ø12 ile değişti, devam notuna bak): 11 cm menteşeli kama, strokun son 2 cm'sinde ~13° iner, alt
     yüzü çıtaların 5 mm üstünde. İniş ~3,1 cm / ~18°. 11 cm'den uzun burun düşüşü azaltmıyor; kalan düşüş uç
     yüksekliğinden (5 mm + Ø20 makara + 2 kat bant). 11 cm'de menteşe ön sıranın ağırlık merkezinin önünde: burun
     inerken tuğla oynamıyor, çevrim süresi uzamıyor (mantık ve 2D sonuçları değişmiyor).
@@ -154,10 +221,44 @@ bıraktığı boş ranza kuyruğa atlıyor (konveyörde yürümüyor); AGV'ler a
 - [x] Dik çıtalı ranzada tuğla düşmesi senaryosu (görsel + sayı): "Çıtalar: dik" seçilince sahnede tuğla ucu boşluğa
   dalıyor; sabit burunda 8,6 cm düşüş + 3,1 cm dalma, eğilir burunda bile ~1,6 cm dalma → red gerekçesi doğrulandı.
   (Mantıkta red 2D'deki gibi `badRack` oranıyla.)
-- [ ] Plaka sehimi ve kat yüksekliği boşluğu görselleştirmesi (plaka ile üst kat çıtası arası mm).
-- [ ] Makara çifti kuvvetleri (yük ağırlık merkezi ve kol uzunluğuna göre) panelde.
-- Açık: eğilir burnun tahriki (kam mili / ince silindir / bağlantı çubuğu), bant gerdirme (burun inince üst bant boyu
-  değişir), lazerler menteşenin arkasına alındı.
+- [x] **Fizikli yükleme detayı** (2026-11-22, kullanıcı istedi: ayrıntılı fizik, tam kat, ayrı sayfa, yumuşak köşe).
+  `yukleme.html` + `src/phys/` (motor, testli) + `src/detail/` (sahne, arayüz).
+  - Motor: 24 tuğla 6 serbestlik dereceli katı cisim, 0,2 ms adım, deterministik. Plaka / burun / bant kinematik: düz
+    üst → menteşe makarası yayı → rampa (iki makaraya teğet) → uç makarası yayı; bant her noktada gerçek hızıyla
+    (üstte zemine göre 0, uçta makaranın etrafında, altta 2× geri). Burun menteşe makarası ekseni etrafında döner,
+    servo 0,25 s'de indirir. Plaka sehimi yüklerden (konsol kiriş, tam yükte uçta 1,4 mm; yük 20 ms süzülür).
+  - Yaş kil: alt yüz hücreleri + 12 kenarın 1 cm'lik bantları, Winkler (basınç = k × batma, kapalı biçim integral),
+    akma basıncında kalıcı ezilme, boşaltmada 10× sert dönüş (iz kalır, sekme ~0,2). Makaralar silindir – yüz çizgi
+    teması (analitik). Sürtünme yapışma yayı + μN'de kayma. Tuğla–tuğla: kenar, yalnızca baktığı yüze.
+  - Doğrulama (testli): serbest düşme hızı √(2gh); düz düşüşte iz 1 / 3 / 5,5 cm → 0,31 / 0,53 / 0,71 mm; 17° eğik
+    düşüşte kenar 1,8–3,9 mm; durgun tuğla kaymıyor; tam katta hepsi düz oturuyor; deterministik.
+  - Ölçülenler: çıtaya çarpma hızı, eğim, kenar / yüz izi (kaynağa göre), tuğla–tuğla kuvveti, yer değiştirme ve sıra
+    aralığı, alt bant – çıta boşluğu ve sürtünmesi, makara çizgisi basıncı. Tuğlaya dokununca zaman grafiği.
+  - Senaryolar (ilk taslak burunla, 11 cm / Ø20 — o günkü varsayılan; yeni burunla karşılaştırma devam notunda. Eğim
+    ranza önündeki sıradan dibe doğru, kil sayıları tahmin):
+
+    | Senaryo | Eğim ° | Çarpma cm/s | Kenar mm | Komşu N | Sıra arası mm | Bant–çıta |
+    |---|---|---|---|---|---|---|
+    | İlk taslak (eğilir 11 cm, 50 cm/s) | 11/12/9/27 | 79 | 3,9 | 279 | 3 | 3,2 mm |
+    | Sabit burun | 6/11/6/19 | 106 | 5,5 | 139 | 1 | 3,4 mm |
+    | Eğilir, 25 cm/s | 11/9/8/35 | 50 | 3,7 | 135 | 8 | 3,1 mm |
+    | Ø12 uç makarası | 10/10/9/25 | 77 | 3,8 | 232 | 11 | 3,3 mm |
+    | Çıta sapması ±4 mm | 10/11/10/27 | 82 | 5,3 | 239 | 11 | −0,8 mm, 200 N |
+    | Bant %3 hızlı | 9/10/5/27 | 80 | 3,9 | 327 | 1 | 3,2 mm |
+  - Basitleştirmeler: plaka ve çıtalar rijit (sehim yarı-statik), tuğlanın yan yüzlerinin içi yalnızca bantlarla temas
+    eder, yüz izi yalnızca alt yüzde, ranza sabit (zincir / çene esnekliği yok). Dik çıtada bazı tuğlalar boşluğa
+    dalıp oturmuyor (beklenen; red gerekçesi).
+- [x] **Tarak tutucu** (2026-11-22, kullanıcı önerisi → kesin): `src/phys` tarak modu (pedler sabit basınç, yapışma–kayma
+  + burulma sürtünmesi; dişler rijit, pahlı kesit; alma bandı), `src/scene/comb.ts` (ortak model), detay sayfası
+  (varsayılan) ve ana sahne (varsayılan, "Yükleyici" ile plakaya geçilir). Testli: düz koyma, hizasızlık sınırı, düşük
+  basınçta kayma. Senaryolar `scripts/phys-cmp.ts tarak`. Ana sahnede tarak zamanlaması 2D plaka evrelerinden (tamponda
+  inme / şişirme tweenle, ranzada indirme girişin son 4 cm'sine sıkıştırıldı).
+- [ ] Tarak: araba + düşey eksen kuvvetleri, makara çifti kuvvetleri (84 kg yük, kol uzunluğu), diş ve kiriş dayanımı.
+- [ ] Tarak dişleri ile üst kat arası boşluk görselleştirmesi (mm).
+- [ ] (Önceki plaka için) plaka sehimi ve kat yüksekliği boşluğu görselleştirmesi.
+- [ ] Makara çifti kuvvetleri (yük ağırlık merkezi ve kol uzunluğuna göre) panelde (tarak arabası için).
+- Eğilir burnun tahriki: servo + metal plakalı kol (2026-11-22, kullanıcı; ölçüler açık). Burun menteşe makarası ekseni
+  etrafında döndüğü için üst bant boyu değişmez; alt bant gerdirmesi açık. Lazerler menteşenin arkasına alındı.
 
 ## Aşama 6 — İkinci ürün: yığma tuğla (29 × 13,5 × 19)
 Tasarım açık; aşağıdakiler konuşulmadan başlanmayacak.
