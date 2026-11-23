@@ -7,10 +7,10 @@ Her aşama bitince bu dosyayı güncelle (✅ / notlar). Bir aşamayı bitirmede
 - Yükleme detayı (fizikli iniş): https://claude.ai/artifact/8V3gBSZMA3UBitj5BCFGpd ← `dist-yukleme/onizleme.html`
 
 ## Devam notu (2026-11-22) — yeni sohbet buradan başlasın
-- Depo: `Deligom/Tu-la-sim-lasyonu`, dal: `claude/adoring-cannon-pyibnj` (main'e birleştirilmedi). Önce `CLAUDE.md`,
-  sonra bu dosya. `npm install && npm test` (71 test), `npm run dev` (`/` hat, `/yukleme.html` yükleme detayı),
-  `npm run build` (iki önizleme dosyası). Fizik senaryoları: `npx tsx scripts/phys-cmp.ts [tarak|genel|burun]`, düşürme:
-  `npx tsx scripts/phys-drop.ts`.
+- Depo: `Deligom/Tu-la-sim-lasyonu`, dal: `main` (varsayılan; 2026-11-23'e kadar `claude/adoring-cannon-pyibnj`).
+  Önce `CLAUDE.md`, sonra bu dosya. `npm install && npm test` (71 test), `npm run dev` (`/` hat, `/yukleme.html` yükleme
+  detayı), `npm run build` (iki önizleme dosyası). Fizik senaryoları: `npx tsx scripts/phys-cmp.ts [tarak|genel|burun]`,
+  düşürme: `npx tsx scripts/phys-drop.ts`.
 - Bitenler: Aşama 0–3; Aşama 5'in iniş kısmı: yarı-statik kontrol (`src/sim/landing.ts`, ana sahnede) + **fizikli yükleme
   detayı** (`yukleme.html`, aşağıda) + **tarak tutucu**.
 - **KARAR (2026-11-22, kullanıcı): yükleyici tarak tutucu** (CLAUDE.md #11). Fizikte, detay sayfasında ve ana sahnede
