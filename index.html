@@ -17,7 +17,7 @@
   <header id="hud">
     <div class="brand">
       <span class="eyebrow">Tuğla dizme hattı · 3D</span>
-      <span class="stage" id="stage">Aşama 3 · hareketli, gerçek ölçek</span>
+      <span class="stage" id="stage">Aşama 4 · hareketli, gerçek ölçek, ayarlı</span>
     </div>
     <div class="clock" aria-live="off">
       <span class="t" id="simTime">0:00,00</span>
@@ -35,6 +35,54 @@
     <button id="infoClose" class="icon" type="button" aria-label="Bilgiyi kapat">×</button>
   </section>
 
+  <aside id="sheet" hidden aria-label="Durum, ayarlar ve hesap">
+    <div class="sheet-head">
+      <div class="tabs" role="tablist" aria-label="Panel sekmeleri">
+        <button type="button" role="tab" data-tab="durum" aria-selected="false">Durum</button>
+        <button type="button" role="tab" data-tab="ayarlar" aria-selected="false">Ayarlar</button>
+        <button type="button" role="tab" data-tab="hesap" aria-selected="false">Hesap</button>
+      </div>
+      <button id="sheetClose" class="icon" type="button" aria-label="Paneli kapat">×</button>
+    </div>
+    <div class="sheet-body">
+      <section data-pane="durum" hidden>
+        <div id="status" class="status">Isınıyor…</div>
+        <h3>Darboğaz <span class="muted">· ölçülen doluluk, en dolusu işaretli</span></h3>
+        <div id="bneck" class="bneck"></div>
+        <div id="cards" class="cards"></div>
+        <h3>Şerit teşhisi</h3>
+        <div id="laneDiag" class="note mono"></div>
+        <p id="changed" class="note"></p>
+        <div class="row">
+          <button id="bFF" type="button">10 dk ileri sar</button>
+        </div>
+      </section>
+      <section data-pane="ayarlar" hidden>
+        <h3>Birikme bandı</h3>
+        <select id="acc" aria-label="Birikme bandı tipi">
+          <option value="zpa">Bölgeli bant (her bölge ayrı motor, tuğlalar birbirine değmez)</option>
+          <option value="single">Tek parça bant (bant tuğlanın altından kayar, kuyrukta tuğlalar çarpışır)</option>
+        </select>
+        <p id="accNote" class="note"></p>
+        <h3>Parametreler</h3>
+        <div id="sliders" class="sliders"></div>
+        <p class="note">· işaretli ayarlar hattın yerleşimini değiştirir: bırakınca sahne yeniden kurulur, simülasyon baştan başlar.
+          Ayarlar bu tarayıcıda hatırlanır.</p>
+        <p id="rebuildNote" class="note warn" hidden>Sahne yeniden kuruluyor…</p>
+        <p id="changed2" class="note"></p>
+        <div class="row">
+          <button id="bDefaults" type="button">Varsayılan ayarlara dön</button>
+          <button id="bDiag" type="button">Teşhis bilgisini kopyala</button>
+        </div>
+        <textarea id="diagOut" hidden readonly aria-label="Teşhis bilgisi"></textarea>
+      </section>
+      <section data-pane="hesap" hidden>
+        <h3>Hesap (teorik)</h3>
+        <table class="calc" id="calc"></table>
+      </section>
+    </div>
+  </aside>
+
   <footer id="dock">
     <div class="row">
       <button id="bPlay" type="button" class="primary">Durdur</button>
@@ -48,6 +96,8 @@
     </div>
     <div class="row cams" id="cams" role="group" aria-label="Kamera açısı"></div>
     <div class="row opts">
+      <button id="bSheetDurum" type="button" aria-pressed="false">Durum</button>
+      <button id="bSheetAyar" type="button" aria-pressed="false">Ayarlar</button>
       <button id="bLabels" type="button" class="toggle on" aria-pressed="true">Etiketler</button>
       <button id="bSlats" type="button" class="toggle" aria-pressed="false">Çıtalar: paralel</button>
       <button id="bLoader" type="button" class="toggle on" aria-pressed="true">Yükleyici: tarak</button>

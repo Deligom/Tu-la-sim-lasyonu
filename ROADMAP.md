@@ -6,13 +6,20 @@ Her aşama bitince bu dosyayı güncelle (✅ / notlar). Bir aşamayı bitirmede
 - Hat simülasyonu: https://claude.ai/artifact/PD6tnqViXV7VJ1bVX8zdWw ← `dist/onizleme.html`
 - Yükleme detayı (fizikli iniş): https://claude.ai/artifact/8V3gBSZMA3UBitj5BCFGpd ← `dist-yukleme/onizleme.html`
 
-## Devam notu (2026-11-22) — yeni sohbet buradan başlasın
+## Devam notu (2026-11-23) — yeni sohbet buradan başlasın
 - Depo: `Deligom/Tu-la-sim-lasyonu`, dal: `main` (varsayılan; 2026-11-23'e kadar `claude/adoring-cannon-pyibnj`).
-  Önce `CLAUDE.md`, sonra bu dosya. `npm install && npm test` (71 test), `npm run dev` (`/` hat, `/yukleme.html` yükleme
+  Önce `CLAUDE.md`, sonra bu dosya. `npm install && npm test` (73 test), `npm run dev` (`/` hat, `/yukleme.html` yükleme
   detayı), `npm run build` (iki önizleme dosyası). Fizik senaryoları: `npx tsx scripts/phys-cmp.ts [tarak|genel|burun]`,
   düşürme: `npx tsx scripts/phys-drop.ts`.
-- Bitenler: Aşama 0–3; Aşama 5'in iniş kısmı: yarı-statik kontrol (`src/sim/landing.ts`, ana sahnede) + **fizikli yükleme
+- Bitenler: Aşama 0–4; Aşama 5'in iniş kısmı: yarı-statik kontrol (`src/sim/landing.ts`, ana sahnede) + **fizikli yükleme
   detayı** (`yukleme.html`, aşağıda) + **tarak tutucu**.
+- **2026-11-23 kararları:** (1) dik çıtalı ranza da kullanılır, ranza reddedilmez; lazer her katı ölçer, yalnızca yamuk
+  kat atlanır (CLAUDE.md #12; mantıkta 3D eki `badLevel`, varsayılan 0 → 2D testleri aynı). (2) Aşama 4 açılır panel
+  olarak yapıldı (aşağıda). (3) Aşama 6 kavramı seçildi: tarak + iki ayrı orta yükleyici (Aşama 6'ya bak); sıradaki iş
+  yığma modunun simülasyonu.
+  (4) Kullanıcı sırada parça parça detaylı çizimlere geçecek (mil / rulman çapları vb.); mukavemet hesabını henüz
+  bilmiyor, birlikte hesaplanabilir (Aşama 5'in açık yük hesapları bunun girdisi). Sacı garanti olsun diye kalın seçmeyi
+  düşünüyor (ör. 2 mm yeterken 4 mm).
 - **KARAR (2026-11-22, kullanıcı): yükleyici tarak tutucu** (CLAUDE.md #11). Fizikte, detay sayfasında ve ana sahnede
   varsayılan; bantlı plaka "önceki tasarım" olarak karşılaştırma için duruyor (CLAUDE.md'de ayrı bölüm, ana sahnede
   "Yükleyici" düğmesi, testlerde `loader: 'plaka'`). 2D mantık modeli (ve eşdeğerlik testleri) plaka evreleriyle kaldı;
@@ -84,10 +91,10 @@ Her aşama bitince bu dosyayı güncelle (✅ / notlar). Bir aşamayı bitirmede
   1 cm pay; 2D referans (`referans-2d-simulasyon.html`) 2 cm'ye bağlı, eşdeğerlik testleri için orada da değişmeli.
 - Kullanıcıyla konuşulacaklar / sıradaki işler: (0) ped – yaş kil sürtünmesi sahada ölçülecek (kullanıcı ~3 hafta
   Ankara'da; isterse seramik çamuruyla ön deneme); tarağın ayrıntıları: düşey eksen, araba ve makara çifti kuvvetleri,
-  diş / kiriş dayanımı, kamera ile aralık kontrolü; dik çıtalı ranza red kuralı kalsın mı (tarakla gereksiz olabilir);
-  (1) sıra aralığı 2 cm kalıyor (tarakla komşu teması yok);
+  diş / kiriş dayanımı, kamera ile aralık kontrolü; (1) sıra aralığı 2 cm kalıyor (tarakla komşu teması yok);
   (2) **sahada düşürme denemesi**: yaş tuğlayı 1, 3, 5,5 cm'den düz ve 17° eğik çıtaya bırakıp iz derinliğini ölçmek →
-  `kW` ve `pY` buradan ayarlanır; (3) servo kolunun ölçüleri; (4) sıradaki iş: Aşama 4 (arayüz), Aşama 5'in kalanı, Aşama 6.
+  `kW` ve `pY` buradan ayarlanır; (3) sıradaki iş: Aşama 6 tasarım konuşması, sonra Aşama 5'in yük hesapları ve parça
+  çizimleri. (Burun servo kolu ve plaka sehimi önceki plakaya aitti, tarakla gereksiz.)
 - Fabrika fotoğrafları depoda yok (depo herkese açık); gerekirse kullanıcı yeniden yükler. Ölçüleri CLAUDE.md'de.
 
 ## Aşama 0 — Kurulum ✅ (2026-11-18)
@@ -201,10 +208,27 @@ yaklaşımı.
 Basitleştirmeler: ön hazırlık makaraları ve pop-up bantları dönmüyor (tuğla hareketi gösteriyor); AGV'nin girişe
 bıraktığı boş ranza kuyruğa atlıyor (konveyörde yürümüyor); AGV'ler aynı koridoru paylaşıyor, üst üste binebilir.
 
-## Aşama 4 — Arayüz
-- [ ] Parametre paneli (2D'deki sürgüler), istatistik kartları, darboğaz göstergesi, şerit teşhis satırı.
-- [ ] Değişen ayarlar listesi + varsayılana dön; teşhis JSON'unu kopyala.
-- [ ] Telefonda kullanılabilir yerleşim.
+## Aşama 4 — Arayüz ✅ (2026-11-23)
+- [x] Parametre paneli (2D'deki sürgüler), istatistik kartları, darboğaz göstergesi, şerit teşhis satırı.
+- [x] Değişen ayarlar listesi + varsayılana dön; teşhis JSON'unu kopyala.
+- [x] Telefonda kullanılabilir yerleşim.
+
+Notlar:
+- Açılır panel (kullanıcı seçti): rafta "Durum" ve "Ayarlar" düğmeleri. Geniş ekranda (≥900 px) sağda 400 px panel, sahne
+  daralır; telefonda alttan açılır (ekranın ~yarısı), açıkken rafta yalnızca oynat / sıfırla / hız kalır. Sekmeler:
+  Durum (2D'deki uyarı satırı, darboğaz, 12 kart, şerit teşhisi, 10 dk ileri sar), Ayarlar (birikme bandı, 2D'deki
+  sürgüler, değişenler, varsayılana dön, teşhisi kopyala), Hesap (2D'deki teorik tablo + tarağın fizikli çevrimi).
+  `src/ui/sheet.ts`, `src/ui/settings.ts`. Telefonda başlık kutusu gizli (saatin yanında sütuna dönüşüyordu).
+- Hesaplar ve uyarılar 2D'deki `updateUI()` / `calc()` ile aynı; "plaka" yazan yerler "tarak". 2D'deki gibi ~5. dakikadan
+  sonra "ranza bekliyor" uyarısı çıkabiliyor (eşik %5, ölçülen ~%6; üretim etkilenmiyor).
+- Darboğaz: ölçülen doluluklar (birikme, ön hazırlığın tabla beklemesi, tarak A/B giriş + çıkış, taşıyıcılar); kaynaklardan
+  en dolusu işaretli. Varsayılanda taşıyıcılar ~%58 (10 dk).
+- Sürgüler: 2D'dekiler; "Fırıncı plaka hızı" → "Tarak giriş / çıkış hızı", "Çıtası dik ranza oranı" yerine "Yamuk kat
+  oranı" (3D eki `badLevel`). Yerleşimi değiştirenler (kesim, bölge sayısı, tampon, araç sayısı; · işaretli) bırakınca sahne
+  yeniden kurulur (sayfa yenilenir). Diğerleri canlı.
+- Ayarlar ve raf düğmeleri (yükleyici, çıtalar, etiketler) tarayıcıda hatırlanır (`tugla-hat-ayar-v1`); depolama
+  yazılamıyorsa yenileme için adresin #'inden taşınır. Not: parça kartlarındaki hız yazıları sahne kurulurkenki
+  değerleri gösterir (canlı değişen hızlar kartta güncellenmez).
 
 ## Aşama 5 — Mühendislik kontrolleri (iniş kısmı öne alındı, 2026-11-21)
 - [x] **Burundan iniş** (öne alındı): `src/sim/landing.ts`, testli. Tuğla, geri çekilen plakanın altında değişen
@@ -219,8 +243,13 @@ bıraktığı boş ranza kuyruğa atlıyor (konveyörde yürümüyor); AGV'ler a
     Ø12 makarayla daha da az.
   - Arayüz: "Burun: eğilir / sabit" düğmesi, iniş kartı, üst şeritte "iniş X cm", yeni "Burun" kamerası.
 - [x] Dik çıtalı ranzada tuğla düşmesi senaryosu (görsel + sayı): "Çıtalar: dik" seçilince sahnede tuğla ucu boşluğa
-  dalıyor; sabit burunda 8,6 cm düşüş + 3,1 cm dalma, eğilir burunda bile ~1,6 cm dalma → red gerekçesi doğrulandı.
-  (Mantıkta red 2D'deki gibi `badRack` oranıyla.)
+  dalıyor; sabit burunda 8,6 cm düşüş + 3,1 cm dalma, eğilir burunda bile ~1,6 cm dalma → plaka için red gerekçesiydi.
+  **2026-11-23:** tarakla dik çıta sorun değil, red kuralı kalktı. Yerine kat kat yamuk kontrolü: lazer her katı ölçer,
+  yamuk kat atlanır (`badLevel`, mantıkta 3D eki; `Rack.bad / filled` bit maskeleri). Sahnede yamuk katta iki çıta
+  turuncu ve bir ucu 1,5 cm kalkık; ranza etiketi "N yamuk kat atlandı". 2D'nin komple red kuralı (`badRack`) yalnızca
+  2D eşdeğerlik testi için duruyor, arayüzde yok. Testli: tuğla yamuk kata konmuyor, %20'de hat yetişiyor, hepsi
+  yamuksa ranza boş çıkıyor. Ölçüm (20 dk, 240/dk): %25 / %30 / %35 taşma yok (ranza bekleme %15 / %15 / %28–48), %45'te
+  ranza taşıma yetişmiyor, hat taşıyor.
 - [x] **Fizikli yükleme detayı** (2026-11-22, kullanıcı istedi: ayrıntılı fizik, tam kat, ayrı sayfa, yumuşak köşe).
   `yukleme.html` + `src/phys/` (motor, testli) + `src/detail/` (sahne, arayüz).
   - Motor: 24 tuğla 6 serbestlik dereceli katı cisim, 0,2 ms adım, deterministik. Plaka / burun / bant kinematik: düz
@@ -262,6 +291,21 @@ bıraktığı boş ranza kuyruğa atlıyor (konveyörde yürümüyor); AGV'ler a
 
 ## Aşama 6 — İkinci ürün: yığma tuğla (29 × 13,5 × 19)
 Tasarım açık; aşağıdakiler konuşulmadan başlanmayacak.
+- Kavram sayfası (2026-11-23, `docs/yigma-kavramlar.html`, https://claude.ai/artifact/AVrMhAygUmSESML2qAERnD).
+  Kullanıcının cevapları: **6+3+6 şart**: ön/arka sıranın 29'luk kenarı tarak yönünde, ranza taşınırken virajda dışarı
+  devrilmesin diye (13,5 tabanda devrilme 0,71 g, 29'da 1,53 g). İpli kilit zor (kullanıcı da öyle düşünüyor). Yığma
+  **sık** üretiliyor (her ay / hafta) → bant düzeni iki ürünü de taşımalı. Kalıpta iki 29'luk sütun arası **2 cm**.
+- **Önerilen: 4. kavram, orta yükleyici (kullanıcının fikri):** tarak yalnızca ön ve arka 6×1 sırayı koyar (bugünkü 7
+  diş aynen; dönmüş 6×1 sıra bugünkü 6 sütunla aynı genişlikte), ortadaki 3 tuğlayı A–B ranzaları arasındaki orta yükleyici
+  yandan sokar (iki uzun çene, U profil + yastık). Kullanıcının sırası 6×1 → orta → 6×1; öneri: iki 6×1 tarakla birlikte,
+  sonra orta (tarak katta bir kez gider). 6'lı grup tablada döner tablayla (Ø ~1 m) 90° döner, katta 2 dönüş; 3'lü grup
+  hattın ortasından düz gidip orta istasyonda tek tek yana aktarılır (dönmez). Orta yuva iki yanda 5 cm → kat derinliği
+  81,5 cm. A–B arası 40 cm'den ~120 cm'ye (ortak yükleyici) ya da ~2,2 m'ye (iki ayrı) açılmalı. Zaman tahmini ≈ 10,5 s
+  / kat, bütçe ~11,4 s (pres hızı bilinmiyor, ~157/dk tahmini). 1. kavram (5 × 3) devrilme yüzünden düştü; 2–3 (bitişik
+  ikililer) orta yükleyiciyle gereksiz.
+- **Kullanıcı onayladı (2026-11-23):** iki 6×1 birlikte, sonra orta; pres hızı bilinmiyor (~157/dk tahminiyle git);
+  **iki ayrı orta yükleyici** (yer sorunu yok, A–B arası 3 m'ye kadar açılabilir); orta yuvada 5 cm olur. Sıradaki iş:
+  yığma modunun simülasyonu (2 şerit, 6'lı / 3'lü grup, döner tabla, orta istasyon ve yükleyici, 6+3+6 kat, zaman).
 - [x] Diziliş deseni (onaylı): önde ve arkada 29'luk kenar X yönünde 6'şar tuğla, ortada 13,5'luk yatay sıra (29 Y
   yönünde) 3 tuğla → kat başına 15 tuğla, derinlik 29 + 13,5 + 29 = 71,5 cm (+ aralıklar), en ≈ 96 cm.
 - [ ] Bantla çıkış yönü 13,5 X × 29 Y: orta sıra olduğu gibi, ön ve arka sıralar 90° dönmeli (tek tek ya da 6'lı grup).

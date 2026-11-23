@@ -14,7 +14,7 @@ import { M } from './materials';
 import { buildRack, type RackModel, type SlatType } from './rack';
 import { tableColumnY, type PlanLayout, type Side } from '../sim/geometry';
 import type { Params } from '../sim/params';
-import type { SimState } from '../sim/model';
+import { bitCount, drawRack, type RackNote, type SimState } from '../sim/model';
 import { POP_INIS, POP_KALKIS, RACK_FEET_LOW, RANZA, RANZA_AKIS, TUGLA, Z } from '../sim/dims';
 import { swapElapsed, swapView } from '../sim/swapview';
 import { NOSE_DEFAULT, brickPose, checkLanding, type LandingConfig, type LandingResult, type NoseKind } from '../sim/landing';
@@ -174,8 +174,10 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
     for (let k = 0; k < 4; k++) cols.forEach((y, ci) => out.push({ dx: lay.rowBack(k) + shift, dy: y - sideC[s], lane: ci % 3 }));
     return out;
   });
-  const drawRackBricks = (s: number, front: number, yc: number, feet: number, levels: number) => {
-    for (let j = 0; j < levels; j++) {
+  /** mask: dolu katlar (bit j = alttan j. kat) */
+  const drawRackBricks = (s: number, front: number, yc: number, feet: number, mask: number) => {
+    for (let j = 0; j < RANZA.katSayisi; j++) {
+      if (!((mask >> j) & 1)) continue;
       const z = feet + RANZA.ilkKat + j * RANZA.katArasi;
       for (const b of pattern[s]) put(front + b.dx, L, yc + b.dy, z, LANE[b.lane]);
     }
@@ -268,7 +270,12 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
   const texts = new Map<string, string>();
   const v2 = new THREE.Vector2();
 
-  const setSlat = (r: RackModel, reject: boolean) => r.setSlatType(reject ? 'dik' : defaultSlat);
+  // Ranzanın çıtaları: 2D'nin komple red kuralındaki ranza dik çıtalı çizilir (eski kural); yamuk katlar eğri çıtalı.
+  const NO_NOTE: RackNote = { filled: 0, bad: 0, reject: false };
+  const setSlat = (r: RackModel, n: Pick<RackNote, 'bad' | 'reject'>) => {
+    r.setSlatType(n.reject ? 'dik' : defaultSlat);
+    r.setBad(n.bad);
+  };
 
   // Eğilir burun (35 cm): girişin son 2 cm'sinde iner (~5°, üstündeki iki sıra burunla eğilir), geri çekilirken
   // bütün tuğlalar indikten sonra, plaka ranzadan çıkarken kalkar.
@@ -439,41 +446,43 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
 
       const E = swapElapsed(rk.phase, rk.timer, rk.levels, rk.lift, rk.target, v, Ts);
       const logicPushed = E >= 0 && rk.phase !== 'swap';
-      const leavingReject = rk.phase === 'swap' ? rk.reject : logicPushed ? sd.outQ[sd.outQ.length - 1] ?? false : false;
-      const nextReject = rk.phase === 'swap' ? ((S.rng * 16807) % 2147483647) / 2147483647 < P.badRack / 100 : rk.reject;
+      const cur: RackNote = { filled: rk.filled, bad: rk.bad, reject: rk.reject };
+      const leaving: RackNote = rk.phase === 'swap' ? cur : logicPushed ? sd.outQ[sd.outQ.length - 1] ?? NO_NOTE : NO_NOTE;
+      const next = rk.phase === 'swap' ? drawRack(S.rng, P) : cur;
 
       let feet: number;
       let stationVisible = true;
-      let levels = rk.levels;
-      let reject = rk.reject;
+      let mask = rk.filled;
+      let note: Pick<RackNote, 'bad' | 'reject'> = cur;
       let label: string;
       outgoing[s].group.visible = false;
       incoming[s].group.visible = false;
       let queue = sd.empty;
       let outItems = sd.outQ;
+      const nBad = bitCount(rk.bad & ((1 << rk.levels) - 1));
+      const badTxt = nBad ? ` · ${nBad} yamuk kat atlandı` : '';
 
       if (E < 0) {
         if (rk.phase === 'needSwap' && rk.reject) {
           feet = 0;
-          levels = 0;
-          label = `Ranza ${name} · red (dik çıta)`;
+          mask = 0;
+          label = `Ranza ${name} · red`;
         } else if (rk.phase === 'needSwap') {
           feet = RACK_FEET_LOW + rk.lift;
-          levels = 5;
-          label = `Ranza ${name} · dolu, boş ranza bekliyor`;
+          label = rk.filled ? `Ranza ${name} · dolu${badTxt}, boş ranza bekliyor` : `Ranza ${name} · bütün katlar yamuk, boş çıkıyor`;
         } else {
           feet = RACK_FEET_LOW + rk.lift;
-          label = `Ranza ${name} · ${rk.levels}/5`;
+          label = `Ranza ${name} · ${rk.levels}/5${badTxt}`;
         }
       } else {
         label = `Ranza ${name} · değişiyor`;
-        const sv = swapView(E, v, Ts, leavingReject);
+        const sv = swapView(E, v, Ts, leaving.reject);
         queue = sd.empty + (logicPushed ? 1 : 0) - (sv.stage !== 'rise1' ? 1 : 0);
         if (sv.stage !== 'rise2') outItems = logicPushed ? sd.outQ.slice(0, -1) : sd.outQ;
         feet = sv.feet;
         if (sv.stage === 'rise1') {
-          levels = leavingReject ? 0 : 5;
-          reject = leavingReject;
+          mask = leaving.filled;
+          note = leaving;
         } else if (sv.stage === 'exchange') {
           const p = sv.p;
           stationVisible = false;
@@ -481,29 +490,29 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
           const slot = Math.max(0, RANZA_AKIS.cikisTampon - 1 - outItems.length);
           og.group.visible = true;
           og.group.position.set(lay.RK0 + smooth(p / 0.55) * (outSlotFront(slot) - lay.RK0), c - RANZA.boyY / 2, 0);
-          setSlat(og, leavingReject);
-          if (!leavingReject) drawRackBricks(s, og.group.position.x, c, 0, 5);
+          setSlat(og, leaving);
+          drawRackBricks(s, og.group.position.x, c, 0, leaving.filled);
           const ic = incoming[s];
           ic.group.visible = true;
           const yA = yIn - RANZA.boyY / 2, yB = c - RANZA.boyY / 2;
           if (p < 0.45) ic.group.position.set(lay.RK0 - step + smooth(p / 0.45) * step, yA, 0);
           else ic.group.position.set(lay.RK0, yA + smooth((p - 0.5) / 0.5) * (yB - yA), 0);
-          setSlat(ic, nextReject);
+          setSlat(ic, next);
         } else {
-          levels = 0;
-          reject = nextReject;
+          mask = 0;
+          note = next;
         }
       }
 
       st.lifter.setFeetZ(feet);
       st.rack.group.visible = stationVisible;
-      setSlat(st.rack, reject);
-      if (stationVisible) drawRackBricks(s, lay.RK0, c, feet, levels);
+      setSlat(st.rack, note);
+      if (stationVisible) drawRackBricks(s, lay.RK0, c, feet, mask);
 
-      // girişte bekleyen boşlar
+      // girişte bekleyen boşlar (yamuk katları lazer ölçünce belli olur)
       rf.waiting.forEach((r, k) => {
         r.group.visible = k < queue;
-        setSlat(r, false);
+        setSlat(r, NO_NOTE);
       });
       // çıkış tamponu (en eski en uçta)
       outBuf[s].forEach((r, i) => {
@@ -513,7 +522,7 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
         const slot = RANZA_AKIS.cikisTampon - 1 - i;
         r.group.position.set(outSlotFront(slot), c - RANZA.boyY / 2, 0);
         setSlat(r, item);
-        if (!item) drawRackBricks(s, outSlotFront(slot), c, 0, 5);
+        drawRackBricks(s, outSlotFront(slot), c, 0, item.filled);
       });
       texts.set(`rack${s}`, label);
     });
@@ -540,13 +549,14 @@ export function createMotion(plant: Plant, lay: PlanLayout, P: Readonly<Params>,
         const fr = outSlotFront(RANZA_AKIS.cikisTampon - 1);
         a.rack.group.visible = true;
         a.rack.group.position.set(fr, c - RANZA.boyY / 2, 0);
-        setSlat(a.rack, veh.cargo === 'reject');
-        if (veh.cargo === 'full') drawRackBricks(veh.to, fr, c, 0, 5);
+        setSlat(a.rack, veh.cargo);
+        drawRackBricks(veh.to, fr, c, 0, veh.cargo.filled);
       } else if (carryFull || carryEmpty) {
         a.rack.group.visible = true;
         a.rack.group.position.set(v2.x - D / 2, v2.y - RANZA.boyY / 2, 4);
-        setSlat(a.rack, !!carryFull && veh.cargo === 'reject');
-        if (carryFull && veh.cargo === 'full') drawRackBricks(veh.to, v2.x - D / 2, v2.y, 4, 5);
+        const cg = carryFull && veh.cargo ? veh.cargo : NO_NOTE;
+        setSlat(a.rack, cg);
+        drawRackBricks(veh.to, v2.x - D / 2, v2.y, 4, cg.filled);
       } else a.rack.group.visible = false;
     });
 

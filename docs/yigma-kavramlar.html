@@ -1,0 +1,369 @@
+<title>Yığma Tuğla Kavramları</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Yerleşim: tek sütunlu teknik not; kavramlar çizim + kısa liste blokları. Renkler simülasyonun kendi paletinden
+   (beton zemin, kesici turuncusu); tuğla kil rengi, tarak dişi ve çeneler koyu çelik. */
+:root {
+  --bg: #ecebe6;
+  --paper: #f7f6f2;
+  --fg: #23211d;
+  --muted: #68635a;
+  --line: #d3cec3;
+  --accent: #c8621a;
+  --clay: #b9754b;
+  --clay2: #9e5f3b;
+  --steel: #3f4650;
+  --jaw: #2f6fd6;
+  --rack: #8d939b;
+  --ok: #2e7d4f;
+  --warn: #a8670f;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17181a; --paper: #1f2023; --fg: #ecebe7; --muted: #a39e95; --line: #383a3e; --accent: #e57f35;
+    --clay: #c98a5f; --clay2: #a9704b; --steel: #c4cad3; --jaw: #7aa7ff; --rack: #6d737b; --ok: #5fc48a; --warn: #f0a94a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17181a; --paper: #1f2023; --fg: #ecebe7; --muted: #a39e95; --line: #383a3e; --accent: #e57f35;
+  --clay: #c98a5f; --clay2: #a9704b; --steel: #c4cad3; --jaw: #7aa7ff; --rack: #6d737b; --ok: #5fc48a; --warn: #f0a94a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--font-ui); margin: 0; }
+.wrap {
+  max-width: 940px;
+  margin: 0 auto;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+header .eyebrow { font: 600 12px var(--font-ui); letter-spacing: 0.09em; text-transform: uppercase; color: var(--accent); }
+h1 { font-size: 30px; line-height: 1.15; margin: 6px 0 10px; text-wrap: balance; font-weight: 700; }
+h2 { font-size: 20px; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; font-weight: 600; }
+p { margin: 0 0 10px; max-width: 70ch; }
+.lead { font-size: 16.5px; }
+.muted { color: var(--muted); }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 14px; }
+.fact { border-top: 2px solid var(--line); padding-top: 6px; }
+.fact b { display: block; font: 600 20px/1.2 var(--font-num); }
+.fact span { font-size: 12.5px; color: var(--muted); }
+section.block { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+section.block.main { border: 2px solid var(--ok); }
+section.block.dropped { opacity: 0.82; }
+.concept { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 720px) { .concept { grid-template-columns: minmax(0, 1fr); } }
+.steps3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 6px 0 14px; }
+@media (max-width: 640px) { .steps3 { grid-template-columns: minmax(0, 1fr); } }
+.steps3 figure { margin: 0; min-width: 0; }
+.steps3 figcaption { font-size: 13px; margin-top: 4px; }
+.steps3 figcaption b { color: var(--accent); font-family: var(--font-num); margin-right: 4px; }
+.tag { display: inline-block; font: 600 11.5px var(--font-ui); letter-spacing: 0.04em; padding: 2px 8px; border-radius: 99px; border: 1px solid currentColor; margin-left: 6px; vertical-align: 3px; }
+.tag.rec { color: var(--ok); }
+.tag.keep { color: var(--accent); }
+.tag.drop { color: var(--warn); }
+.fig { min-width: 0; }
+.fig svg, .steps3 svg, .plan svg { width: 100%; height: auto; display: block; }
+.fig figcaption { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.plan { overflow-x: auto; margin: 4px 0 12px; }
+.plan svg { min-width: 520px; }
+ol.steps, ul.pc { margin: 0; padding-left: 20px; }
+ol.steps li, ul.pc li { margin-bottom: 4px; }
+ul.pc.plus li::marker { content: "+  "; color: var(--ok); font-weight: 700; }
+ul.pc.minus li::marker { content: "−  "; color: var(--warn); font-weight: 700; }
+.cmp-wrap { overflow-x: auto; }
+table.cmp { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13.5px; }
+table.cmp th, table.cmp td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.cmp th { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.03em; }
+table.cmp td:first-child { color: var(--muted); white-space: nowrap; }
+table.cmp .best { color: var(--ok); font-weight: 600; }
+.q { counter-reset: q; display: flex; flex-direction: column; gap: 10px; padding: 0; margin: 0; list-style: none; }
+.q li { counter-increment: q; padding-left: 30px; position: relative; }
+.q li::before { content: counter(q); position: absolute; left: 0; top: 1px; width: 21px; height: 21px; border-radius: 50%; background: var(--accent); color: var(--paper); font: 600 12px/21px var(--font-num); text-align: center; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
+svg text { font-family: var(--font-ui); }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Aşama 6 · ikinci ürün · tasarım konuşması</div>
+    <h1>Yığma tuğlanın katı nasıl kurulur?</h1>
+    <p class="lead">Kalıp değişince pres 29 cm enli 2 sütun veriyor (aralarında 2 cm), tel 13,5 cm'de kesiyor. Bantta her tuğla
+      akış yönünde 13,5, enine 29 cm. Ranzada kat 15 tuğla, el dizilişi 6+3+6. Ön ve arka sıra, taşırken virajda dışarı
+      devrilmesin diye 29'luk kenarı tarak giriş yönünde duruyor; bu yüzden bu 12 tuğla 90° dönmek zorunda.</p>
+    <div class="facts">
+      <div class="fact"><b>29 × 13,5 × 19</b><span>cm; enine × akış × yükseklik</span></div>
+      <div class="fact"><b>~5,3 kg</b><span>tahmin (19'luktan orantı)</span></div>
+      <div class="fact"><b>12 + 3</b><span>dönen + dönmeyen tuğla / kat</span></div>
+      <div class="fact"><b>~11,4 s</b><span>istasyon başına kat aralığı, tahmin (~157 tuğla/dk)</span></div>
+    </div>
+  </header>
+
+  <section class="block">
+    <h2>Neden 6+3+6, ipli kilit yerine ne?</h2>
+    <p>Katı bir tuğla, yana itildiğinde taban eninin yüksekliğe oranı kadar ivmede devrilir: 13,5 cm'lik tabanda
+      <span class="num">13,5 / 19 = 0,71 g</span>, 29 cm'lik tabanda <span class="num">1,53 g</span>. Ön ve arka sıra 29'luk
+      kenarı tarak yönünde durunca o yönde iki kat sağlam; ortadaki 3 tuğla iki sıranın arasında kalır, devrilse bile
+      yanındakine yaslanır. 5 × 3 dizilişte (1. kavram) dış sıralar o yönde 0,71 g'de kalıyor; senin verdiğin sebep yüzünden
+      bu kavram düşüyor.</p>
+    <p>İpli kilide katılıyorum, zor: her ranzaya bir mekanizma, yüklemede otomatik kilitleme, kurutma ve fırın girişinde
+      açma; ip yaş tuğlanın yüzüne de baskı yapar. Dönen sıraları makinede kurmak daha kolay.</p>
+  </section>
+
+  <section class="block main" id="k4">
+    <h2>4 · Orta yükleyici (senin fikrin) <span class="tag rec">seçildi</span></h2>
+    <p><b>Karar (23 Kasım):</b> iki 6×1 sıra birlikte, sonra orta; her istasyona ayrı orta yükleyici (A–B arası açılabilir);
+      orta yuvada 5 cm; pres hızı bilinmediği için ~157 tuğla/dk tahminiyle simüle edilecek.</p>
+    <p>Tarak yalnızca ön ve arka sırayı (iki 6×1) koyar, ortadaki 3 tuğlayı A–B ranzalarının arasındaki ayrı bir yükleyici yandan
+      sokar. Bir değişiklik öneriyorum: iki 6×1 sırayı tarak <b>tek seferde birlikte</b> koysun, sonra orta yükleyici
+      aradaki boş yuvaya girsin. Tarak katta bir kez gidip gelir; senin sırandaki gibi (6×1, orta, 6×1) iki kez gitseydi kat
+      ~15 s sürerdi.</p>
+    <div class="steps3">
+      <figure><div id="st1"></div><figcaption><b>1</b>Tarak iki 6×1 sırayı birlikte koyar, ortası boş kalır. 7 dişin hepsi kullanılır.</figcaption></figure>
+      <figure><div id="st2"></div><figcaption><b>2</b>Tarak çıkar. Orta yükleyici iki çeneyle 3 tuğlayı yandan, boş yuvaya sokar.</figcaption></figure>
+      <figure><div id="st3"></div><figcaption><b>3</b>Çeneler açılıp yana çekilir, ranza 30 cm kalkar, sıradaki kat.</figcaption></figure>
+    </div>
+    <h3>Hatta nereye oturur</h3>
+    <div class="plan" id="plan"></div>
+    <div class="concept" style="grid-template-columns: minmax(0,1fr) minmax(0,1fr)">
+      <div>
+        <h3>Akış</h3>
+        <ol class="steps">
+          <li>Ön hazırlık şerit başına iki çeşit grup dizer: 6'lı (6 tuğla, 3 cm aralık, 96 cm; ön hazırlık 85'ten ~100 cm'ye
+            uzar) ve 3'lü.</li>
+          <li>6'lı grup tablaya aktarılır, tablanın döner tablası (Ø ~1 m) 90° çevirir: grup 6×1 sıra olur. Katta 2 dönüş.</li>
+          <li>Tabla iki 6×1 sırayı arada 23,5 cm boşlukla tampona verir; alma bandı, tarak. Tarak dişleri bugünküyle aynı
+            yerde: dönmüş 6×1 sıra, bugünkü 6 sütunla aynı genişlikte (6 × 13,5 + 5 × 3 = 96 cm).</li>
+          <li>3'lü grup hattın ortasından düz devam eder, A–B arasındaki orta istasyonda tuğlalar tek tek yana (Y) aktarılıp
+            yan yana dizilir: 29'luk kenar kendiliğinden doğru yönde, dönmeye gerek yok.</li>
+          <li>Orta yükleyici: iki uzun çene (tarak dişi gibi U profil + yastık), 3 tuğlayı 29 × 19'luk yüzlerinden sıkar,
+            ranzaya yandan girer, çıtanın ~1 mm üstüne indirir, bırakır.</li>
+        </ol>
+      </div>
+      <div>
+        <h3>Artısı, eksisi</h3>
+        <ul class="pc plus">
+          <li>El dizilişi aynen, devrilmeye karşı sağlam.</li>
+          <li>Bitişik tuğla yok: her tuğla iki diş ya da iki çene arasında kendi pediyle tutulur.</li>
+          <li>Tarak ve dişleri bugünküyle aynı; 6×1 sırada yüz geniş (29 × 19), ~0,06 bar yeter.</li>
+          <li>Orta sıra hiç dönmez.</li>
+        </ul>
+        <ul class="pc minus">
+          <li>Yine 12 tuğla döner (2 grup × 6): tabla başına bir döner tabla.</li>
+          <li>Orta yuva iki yanda 5 cm (çene 2 cm + boşluk); kat derinliği 81,5 cm, 85'e sığar. El dizilişindeki 2 cm'den geniş.</li>
+          <li>A–B arası açılmalı: bugün 40 cm. Tek ortak yükleyiciyle ~120 cm, iki ayrı yükleyiciyle ~2,2 m. Hat toplam
+            ~5,6 m'den ~6,4 ya da ~7,4 m'ye genişler.</li>
+          <li>Zaman sıkışık: tarak (~4,7 s, 80 cm/s) + orta yükleyici (~4–5 s) + ranza kalkışı (1,5 s) ≈ 10,5 s; tahmini
+            bütçe 11,4 s. Ortak tek yükleyici iki istasyona ~5,7 s'de bir gitmeli, yetmeyebilir. Simülasyonda ölçülecek.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Hepsinde ortak</h2>
+    <ul class="pc">
+      <li><b>Şeritler 2'ye iner, bantlar genişler.</b> 2 × 29 + 2 = 60 cm; bugünkü 3 şeritlik bölgeli bant 46,5 cm. Ürün sık
+        değiştiği için bant düzeni iki ürünü de taşımalı; yığma sütunları (merkezleri ±15,5 cm) bugünkü dış şeritlerin
+        (±16,5) 1 cm yanına düşüyor ama orta şeridin bandına da biniyor. Bu ayrı bir tasarım konusu.</li>
+      <li><b>Kesim katı tutmaz, sorun değil.</b> 22 tuğlalık kesimi 15'lik katlara birikme bölgeleri böler.</li>
+      <li>Ranza, kat yüksekliği (19 cm), lazer ve yamuk kat kontrolü aynen kalır.</li>
+    </ul>
+  </section>
+
+  <section class="block dropped" id="k1">
+    <div class="concept">
+      <figure class="fig" style="margin:0"><div id="svg-k1"></div><figcaption>Ranzaya üstten bakış, ölçekli. Tarak soldan girer.</figcaption></figure>
+      <div>
+        <h2>1 · Hepsi aynı yönde, 5 sıra × 3 <span class="tag drop">devrilme yüzünden düştü</span></h2>
+        <p>Hiçbir tuğla dönmez, tarak 4 dişle tutar, 2 + 1 şerit aktarmayla kurulur. En basit kavram, ama dış sıralar tarak
+          yönünde 13,5 cm'lik taban üstünde duruyor: virajda devrilme riski el dizilişinden yüksek.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block dropped" id="k2">
+    <div class="concept">
+      <figure class="fig" style="margin:0"><div id="svg-k2"></div><figcaption>6+3+6, ön ve arka sıra bitişik ikililer.</figcaption></figure>
+      <div>
+        <h2>2 ve 3 · Ön ve arka sırayı ikili ya da 6'lı döndür, katı tek seferde koy <span class="tag keep">gerek kalmadı</span></h2>
+        <p>Bütün kat tarakla tek seferde konursa orta sıra 5 dişin üçünü kapatıyor; ön ve arka sırada ancak 4 diş kalıyor,
+          her pedin iki tuğlayı birlikte sıkması gerekiyordu. Bunun için iki tuğla bitişik durmalıydı (önceki sorudaki
+          "bitişik ikili" buydu). Orta yükleyicide orta sıra sonradan geldiği için 7 diş de kullanılıyor, bu sorun kalkıyor.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Yan yana</h2>
+    <div class="cmp-wrap">
+      <table class="cmp">
+        <thead><tr><th></th><th>4 · orta yükleyici</th><th>1 · 5 × 3</th><th>2 · ikili döndürme</th><th>3 · 6'lı grup</th></tr></thead>
+        <tbody>
+          <tr><td>Diziliş</td><td class="best">El dizilişi</td><td>Yeni, devrilmeye zayıf</td><td>El dizilişi</td><td>El dizilişi</td></tr>
+          <tr><td>Dönen tuğla / kat</td><td>12 (2 grup)</td><td class="best">0</td><td>12 (6 ikili)</td><td>12 (2 grup)</td></tr>
+          <tr><td>Bitişik tuğla</td><td class="best">Yok</td><td class="best">Yok</td><td>İkililer</td><td>İkililer</td></tr>
+          <tr><td>Tarak</td><td class="best">Bugünkü 7 diş</td><td>4 diş</td><td>4 diş</td><td>4 diş</td></tr>
+          <tr><td>Ek makine</td><td>Döner tabla + orta yükleyici</td><td>Şerit seçmeli pop-up</td><td>Şeritte döner tabla</td><td>Döner tabla</td></tr>
+          <tr><td>Hat eni</td><td>+0,8 ile +1,8 m</td><td class="best">Aynı</td><td class="best">Aynı</td><td class="best">Aynı</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="legend" style="margin-top:10px">
+      <span><i style="background:var(--clay)"></i>tuğla</span>
+      <span><i style="background:var(--steel)"></i>tarak dişi</span>
+      <span><i style="background:var(--jaw)"></i>orta yükleyici çenesi</span>
+      <span><i style="background:var(--rack)"></i>ranza çerçevesi (90 × 120)</span>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Simülasyona geçmeden önce</h2>
+    <ol class="q">
+      <li><b>Yığma tuğlada pres hızı?</b> Dakikada kaç tuğla? Zaman bütçesi buna bağlı; şimdilik aynı çamur debisinden ~157/dk
+        tahmin ettim.</li>
+      <li><b>Hatta yana ne kadar yer var?</b> A–B arası 40 cm'den en az ~120 cm'ye çıkmalı (hat ~6,4 m eninde). İki ayrı orta
+        yükleyici ~7,4 m ister.</li>
+      <li><b>Orta yuvada 5 cm aralık olur mu?</b> El dizilişinde sıralar arası ~2 cm; çene için 5 cm gerekiyor.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+// Ölçekli üstten bakışlar: ranza 90 (X, tarak giriş yönü, sağa) × 120 (Y). Birim cm. Plan şeması ölçeksiz.
+(function () {
+  const NS = 'http://www.w3.org/2000/svg';
+  const YC = 60;
+  const mk = (tag, attrs, parent) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+  const txt = (svg, x, y, s, size, extra) => { const t = mk('text', Object.assign({ x, y, 'font-size': size, fill: 'var(--muted)', 'text-anchor': 'middle' }, extra || {}), svg); t.textContent = s; return t; };
+  function rackSvg(label, vb) {
+    const svg = mk('svg', { viewBox: vb || '-22 -24 122 160', role: 'img', 'aria-label': label });
+    mk('rect', { x: 0, y: 0, width: 90, height: 120, fill: 'none', stroke: 'var(--rack)', 'stroke-width': 1.2, rx: 0.5 }, svg);
+    return svg;
+  }
+  const bricks = (svg, list) => list.forEach((b, i) => mk('rect', { x: b.x, y: b.y, width: b.w, height: b.h, fill: i % 2 ? 'var(--clay2)' : 'var(--clay)', stroke: 'var(--paper)', 'stroke-width': 0.25 }, svg));
+  function comb(svg, teeth, xEnd) {
+    mk('rect', { x: -18, y: YC - 53, width: 4, height: 106, fill: 'var(--steel)' }, svg);
+    teeth.forEach((t) => mk('rect', { x: -14, y: YC + t - 1, width: xEnd + 14, height: 2, fill: 'var(--steel)', opacity: 0.85 }, svg));
+  }
+  function arrowX(svg) {
+    mk('path', { d: 'M 70 131 L 86 131 M 82 128.5 L 86 131 L 82 133.5', stroke: 'var(--accent)', 'stroke-width': 0.8, fill: 'none' }, svg);
+    txt(svg, 68, 132.4, 'tarak yönü', 3.8, { 'text-anchor': 'end', fill: 'var(--accent)' });
+  }
+
+  // ---- 4. kavram: iki 6×1 sıra + orta yuva (5 cm) ----
+  const X0 = 3.5, ROWW = 29, MID = 13.5, SLOT = 5;
+  const xBack = X0, xMid = X0 + ROWW + SLOT, xFront = xMid + MID + SLOT; // 3.5, 37.5, 56
+  const depth = xFront + ROWW - X0; // 81.5
+  const row6 = (x) => Array.from({ length: 6 }, (_, k) => ({ x, y: 12 + k * 16.5, w: ROWW, h: 13.5 }));
+  const mid3 = Array.from({ length: 3 }, (_, c) => ({ x: xMid, y: YC + (c - 1) * 33 - 14.5, w: MID, h: 29 }));
+  const TEETH7 = [-49.5, -33, -16.5, 0, 16.5, 33, 49.5];
+  const jaws = (svg, inside) => {
+    const y0 = inside ? -2 : -46, len = 112;
+    [xMid - SLOT / 2, xMid + MID + SLOT / 2].forEach((x) => mk('rect', { x: x - 1, y: y0, width: 2, height: len, fill: 'var(--jaw)' }, svg));
+    mk('rect', { x: xMid - SLOT / 2 - 3, y: y0 - 5, width: MID + SLOT + 6, height: 4, fill: 'var(--jaw)' }, svg);
+  };
+  {
+    const s = rackSvg('Adım 1: tarak iki 6×1 sırayı koyar', '-22 -54 122 190');
+    bricks(s, [...row6(xBack), ...row6(xFront)]);
+    mk('rect', { x: xMid, y: 10, width: MID, height: 100, fill: 'none', stroke: 'var(--muted)', 'stroke-width': 0.5, 'stroke-dasharray': '2 1.5' }, s);
+    txt(s, xMid + MID / 2, 125, 'orta yuva', 3.8);
+    comb(s, TEETH7, xFront + ROWW);
+    arrowX(s);
+    document.getElementById('st1').appendChild(s);
+  }
+  {
+    const s = rackSvg('Adım 2: orta yükleyici orta sırayı yandan sokar', '-22 -54 122 190');
+    bricks(s, [...row6(xBack), ...row6(xFront), ...mid3]);
+    jaws(s, true);
+    mk('path', { d: `M ${xMid + MID + 12} -40 L ${xMid + MID + 12} -24 M ${xMid + MID + 9.5} -28 L ${xMid + MID + 12} -24 L ${xMid + MID + 14.5} -28`, stroke: 'var(--jaw)', 'stroke-width': 0.8, fill: 'none' }, s);
+    txt(s, xMid + MID + 12, -44, 'A–B arasından', 3.8, { fill: 'var(--jaw)' });
+    txt(s, 45, 131, 'çeneler 5 cm\'lik yuvalarda', 3.8);
+    document.getElementById('st2').appendChild(s);
+  }
+  {
+    const s = rackSvg('Adım 3: kat tamam', '-22 -54 122 190');
+    bricks(s, [...row6(xBack), ...row6(xFront), ...mid3]);
+    mk('line', { x1: X0, y1: 124, x2: X0 + depth, y2: 124, stroke: 'var(--muted)', 'stroke-width': 0.4 }, s);
+    txt(s, X0 + depth / 2, 130, `kat derinliği ${String(depth).replace('.', ',')} cm · 15 tuğla`, 3.8, { fill: 'var(--fg)', 'font-family': 'IBM Plex Mono, monospace' });
+    document.getElementById('st3').appendChild(s);
+  }
+
+  // ---- hat planı (şematik) ----
+  {
+    const svg = mk('svg', { viewBox: '0 0 560 250', role: 'img', 'aria-label': 'Hatta orta istasyonun yeri, şematik' });
+    const box = (x, y, w, h, label, fill, stroke) => {
+      mk('rect', { x, y, width: w, height: h, rx: 3, fill: fill || 'var(--bg)', stroke: stroke || 'var(--line)', 'stroke-width': 1.2 }, svg);
+      if (label) { const t = mk('text', { x: x + w / 2, y: y + h / 2 + 4, 'font-size': 11, fill: 'var(--fg)', 'text-anchor': 'middle' }, svg); t.textContent = label; }
+    };
+    const arrow = (x1, y1, x2, y2, col) => {
+      mk('line', { x1, y1, x2, y2, stroke: col, 'stroke-width': 2 }, svg);
+      const a = Math.atan2(y2 - y1, x2 - x1), L = 7;
+      mk('path', { d: `M ${x2} ${y2} L ${x2 - L * Math.cos(a - 0.45)} ${y2 - L * Math.sin(a - 0.45)} M ${x2} ${y2} L ${x2 - L * Math.cos(a + 0.45)} ${y2 - L * Math.sin(a + 0.45)}`, stroke: col, 'stroke-width': 2, fill: 'none' }, svg);
+    };
+    box(10, 105, 150, 40, 'Pres · 2 şerit · ön hazırlık');
+    box(175, 20, 110, 60, 'Tabla A + döner', 'var(--bg)');
+    box(175, 170, 110, 60, 'Tabla B + döner', 'var(--bg)');
+    box(300, 30, 90, 40, 'Tampon A');
+    box(300, 180, 90, 40, 'Tampon B');
+    box(420, 10, 120, 80, 'Ranza A', 'var(--bg)', 'var(--rack)');
+    box(420, 160, 120, 80, 'Ranza B', 'var(--bg)', 'var(--rack)');
+    box(420, 104, 120, 42, 'Orta istasyon', 'var(--paper)', 'var(--jaw)');
+    arrow(160, 118, 175, 70, 'var(--accent)');
+    arrow(160, 132, 175, 180, 'var(--accent)');
+    arrow(285, 50, 300, 50, 'var(--accent)');
+    arrow(285, 200, 300, 200, 'var(--accent)');
+    arrow(390, 50, 420, 50, 'var(--steel)');
+    arrow(390, 200, 420, 200, 'var(--steel)');
+    arrow(160, 125, 418, 125, 'var(--jaw)');
+    arrow(480, 104, 480, 92, 'var(--jaw)');
+    arrow(480, 146, 480, 158, 'var(--jaw)');
+    const n = (x, y, s, c) => { const t = mk('text', { x, y, 'font-size': 10.5, fill: c, 'text-anchor': 'middle' }, svg); t.textContent = s; };
+    n(230, 100, '6\'lı grup → 90° → 6×1', 'var(--accent)');
+    n(300, 120, '3\'lü grup düz devam', 'var(--jaw)');
+    n(405, 20, 'tarak', 'var(--steel)');
+    n(510, 100, 'çene', 'var(--jaw)');
+    n(280, 246, 'şematik, ölçeksiz · A–B arası bugün 40 cm, orta istasyon için ~120 cm', 'var(--muted)');
+    document.getElementById('plan').appendChild(svg);
+  }
+
+  // ---- düşen kavramlar (karşılaştırma için) ----
+  const PITCH = 33;
+  {
+    const s = rackSvg('5 sıra × 3 sütun yerleşim', '-22 -10 122 146');
+    const k1 = [];
+    for (let r = 0; r < 5; r++) for (let c = -1; c <= 1; c++) k1.push({ x: 6 + r * 15.5, y: YC + c * PITCH - 14.5, w: 13.5, h: 29 });
+    bricks(s, k1);
+    comb(s, [-49, -16.5, 16.5, 49], 6 + 75.5);
+    document.getElementById('svg-k1').appendChild(s);
+  }
+  {
+    const s = rackSvg('6+3+6 bitişik ikililerle', '-22 -10 122 146');
+    const six = [];
+    const pairRow = (x) => { for (let c = -1; c <= 1; c++) { const y = YC + c * PITCH; six.push({ x, y: y - 13.5, w: 29, h: 13.5 }, { x, y, w: 29, h: 13.5 }); } };
+    pairRow(6);
+    for (let c = -1; c <= 1; c++) six.push({ x: 37, y: YC + c * PITCH - 14.5, w: 13.5, h: 29 });
+    pairRow(52.5);
+    bricks(s, six);
+    comb(s, [-49, -16.5, 16.5, 49], 6 + 75.5);
+    document.getElementById('svg-k2').appendChild(s);
+  }
+})();
+</script>

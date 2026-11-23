@@ -119,3 +119,45 @@ describe('CLAUDE.md: 2D\'de doğrulanan sonuçlar', () => {
     expect(S.contacts).toBe(0);
   }, 60_000);
 });
+
+// 2026-11-23, kullanıcı kararı: dik çıta artık red sebebi değil (tarak düz koyuyor). Lazer her katı ölçer;
+// yamuk kat atlanır, ranzanın geri kalanı dolar. Oran 0 iken çekiliş yapılmaz (yukarıdaki 2D testleri aynı kalır).
+describe('yamuk kat (3D eki)', () => {
+  /** Ranza değişirken: tuğla yamuk kata konmamış, her kat ya dolu ya yamuk. Bozuk ranza sayısını döndürür. */
+  const runCheck = (sim: Simulation, seconds: number) => {
+    let wrong = 0;
+    let seen = 0;
+    for (let i = 0, n = Math.round(seconds / DT); i < n; i++) {
+      sim.step(DT);
+      for (const sd of sim.S.sides) {
+        const rk = sd.rack;
+        if (rk.phase !== 'swap' || rk.reject) continue; // değişimde: katlar son hâlinde
+        seen++;
+        if ((rk.filled & rk.bad) !== 0 || (rk.filled | rk.bad) !== 31) wrong++;
+      }
+    }
+    return { wrong, seen };
+  };
+
+  it('%20 yamuk kat: katlar atlanıyor, ranza reddedilmiyor, hat yetişiyor', () => {
+    const sim = new Simulation({ badLevel: 20 });
+    const r = runCheck(sim, 600);
+    const s = summarize(sim.S);
+    expect(r.seen).toBeGreaterThan(0);
+    expect(r.wrong).toBe(0);
+    expect(s.skipped).toBeGreaterThan(10);
+    expect(s.rejected).toBe(0);
+    expect(s.lost).toBe(0);
+    expect(s.perMin!).toBeGreaterThan(235);
+    expect(s.racks).toBeGreaterThan(new Simulation().params.inCap); // eksik katlı ranzalar da dolu sayılır
+  }, 60_000);
+
+  it('bütün katlar yamuksa ranza boş çıkar, tuğla konmaz', () => {
+    const sim = new Simulation({ badLevel: 100 });
+    runCheck(sim, 120);
+    const s = summarize(sim.S);
+    expect(s.rejected).toBeGreaterThan(0);
+    expect(s.racks).toBe(0);
+    expect(sim.S.sides[0].loaded + sim.S.sides[1].loaded).toBe(0);
+  }, 60_000);
+});

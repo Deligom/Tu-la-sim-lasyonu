@@ -14,13 +14,20 @@ export interface RackModel {
   group: THREE.Group;
   slats: Record<SlatType, THREE.Group>;
   setSlatType(t: SlatType): void;
+  /** Yamuk katlar (bit k = alttan k. kat): o katta iki çıta eğri görünür */
+  setBad(mask: number): void;
 }
 
 export interface RackMats {
   rack: THREE.Material;
   wood: THREE.Material;
   woodDark: THREE.Material;
+  /** Yamuk kattaki eğri çıtalar (verilmezse M.woodBad) */
+  woodBad?: THREE.Material;
 }
+
+/** Yamuk katta çıtanın bir ucu bu kadar yukarıda (görsel; tolerans öneri ±4 mm) */
+const BENT = 1.5;
 
 export function buildRack(name: string, mats: RackMats = { rack: M.rack, wood: M.wood, woodDark: M.woodDark }): RackModel {
   const D = RANZA.derinlikX;
@@ -37,9 +44,17 @@ export function buildRack(name: string, mats: RackMats = { rack: M.rack, wood: M
       `${B} (boy, Y) × ${D} (derinlik, X) × ${RANZA.cerceveYuk} cm, ${RANZA.katSayisi} kat, kat arası ${RANZA.katArasi} cm, ` +
       `kullanılabilir ${RANZA.katArasi - ct} cm. 5 mm köşebent, ahşap çıta (${ct} cm). ` +
       (type === 'paralel'
-        ? `Çıtalar plaka giriş yönüne paralel (${RANZA.paralel.adet} adet × ${RANZA.paralel.en} cm): doğru tip.`
-        : `Çıtalar plaka giriş yönüne dik (${RANZA.dik.adet} adet × ${RANZA.dik.en} cm): tuğla ucu boşluğa düşüp ezilir, plaka ucundaki lazer görüp reddeder.`),
+        ? `Çıtalar tarak giriş yönüne paralel (${RANZA.paralel.adet} adet × ${RANZA.paralel.en} cm).`
+        : `Çıtalar tarak giriş yönüne dik (${RANZA.dik.adet} adet × ${RANZA.dik.en} cm). Tarak tuğlayı düz koyduğu için bu tip ` +
+          'de kullanılıyor (önceki bantlı plakada tuğla ucu boşluğa düşüp eziliyordu).') +
+      ' Tarağın arka kirişindeki 2 lazer her katı ölçer; yamuk kat atlanır, ranza reddedilmez.',
   });
+  const badInfo = {
+    title: `Ranza ${name} · yamuk kat`,
+    detail:
+      'Bu katın çıtaları eğri ya da yükseklikleri farklı (tolerans öneri ±4 mm; fazlasında yüksek çıtaya önce değen tuğla ' +
+      'pedde kayıyor). Lazer ölçünce kaldırıcı bu katı atlayıp sıradakine geçer; ranzanın geri kalanı dolar.',
+  };
 
   const frame = new Parts(baseInfo('paralel'));
   // dikmeler L40×40×5, kanatları dış yüzlerde
@@ -67,30 +82,71 @@ export function buildRack(name: string, mats: RackMats = { rack: M.rack, wood: M
     for (const [y0, s] of [[a, 1], [B - a, -1]] as const) frame.strut(mats.rack, [x, y0, 2], [x, y0 + s * 22, z0], 1.6);
   }
 
-  const paralel = new Parts(baseInfo('paralel'));
-  const dik = new Parts(baseInfo('dik'));
-  levels.forEach((zt) => {
-    const nP = RANZA.paralel.adet, wP = RANZA.paralel.en;
-    const pitchP = (B - 2 - wP) / (nP - 1);
-    for (let k = 0; k < nP; k++) {
-      const y0 = 1 + k * pitchP;
-      paralel.box(k % 3 === 1 ? mats.woodDark : mats.wood, t, D - t, y0, y0 + wP, zt - ct, zt);
+  // Çıtalar: bir kat (zt) için; bent = yamuk kat (iki çıtanın birer ucu BENT kadar yukarıda)
+  const woodBad = mats.woodBad ?? M.woodBad;
+  const addLevel = (p: Parts, type: SlatType, zt: number, bent: boolean) => {
+    const zc = zt - ct / 2;
+    if (type === 'paralel') {
+      const nP = RANZA.paralel.adet, wP = RANZA.paralel.en;
+      const pitchP = (B - 2 - wP) / (nP - 1);
+      for (let k = 0; k < nP; k++) {
+        const y0 = 1 + k * pitchP;
+        if (bent && (k === 1 || k === nP - 2)) {
+          const up = k === 1 ? [0, BENT] : [BENT, 0];
+          p.slopeXZ(woodBad, y0, y0 + wP, t, zc + up[0], D - t, zc + up[1], ct);
+        } else p.box(k % 3 === 1 ? mats.woodDark : mats.wood, t, D - t, y0, y0 + wP, zt - ct, zt);
+      }
+    } else {
+      const nD = RANZA.dik.adet, wD = RANZA.dik.en;
+      const pitchD = (D - 2 - wD) / (nD - 1);
+      for (let k = 0; k < nD; k++) {
+        const x0 = 1 + k * pitchD;
+        if (bent && (k === 1 || k === nD - 2)) {
+          const up = k === 1 ? [0, BENT] : [BENT, 0];
+          p.slopeYZ(woodBad, x0, x0 + wD, t, zc + up[0], B - t, zc + up[1], ct);
+        } else p.box(k % 3 === 1 ? mats.woodDark : mats.wood, x0, x0 + wD, t, B - t, zt - ct, zt);
+      }
     }
-    const nD = RANZA.dik.adet, wD = RANZA.dik.en;
-    const pitchD = (D - 2 - wD) / (nD - 1);
-    for (let k = 0; k < nD; k++) {
-      const x0 = 1 + k * pitchD;
-      dik.box(k % 3 === 1 ? mats.woodDark : mats.wood, x0, x0 + wD, t, B - t, zt - ct, zt);
+  };
+  const TYPES: SlatType[] = ['paralel', 'dik'];
+  const TITLE: Record<SlatType, string> = { paralel: 'Paralel çıtalar', dik: 'Dik çıtalar' };
+  // Hepsi düz: tek birleşik grup (az çizim çağrısı). Yamuk kat varsa kat kat gruplar (ilk gerektiğinde kurulur).
+  const full = {} as Record<SlatType, THREE.Group>;
+  const slats = {} as Record<SlatType, THREE.Group>;
+  for (const type of TYPES) {
+    const p = new Parts(baseInfo(type));
+    levels.forEach((zt) => addLevel(p, type, zt, false));
+    full[type] = p.build(TITLE[type]);
+    slats[type] = new THREE.Group();
+    slats[type].name = TITLE[type];
+    slats[type].add(full[type]);
+  }
+  let perLevel: Record<SlatType, { ok: THREE.Group; bad: THREE.Group }[]> | null = null;
+  const ensurePerLevel = () => {
+    if (perLevel) return perLevel;
+    perLevel = { paralel: [], dik: [] };
+    for (const type of TYPES) {
+      levels.forEach((zt, j) => {
+        const ok = new Parts(baseInfo(type));
+        addLevel(ok, type, zt, false);
+        const bad = new Parts(badInfo);
+        addLevel(bad, type, zt, true);
+        const e = { ok: ok.build(`${TITLE[type]} · kat ${j + 1}`), bad: bad.build(`Yamuk kat ${j + 1}`) };
+        e.ok.visible = e.bad.visible = false;
+        slats[type].add(e.ok, e.bad);
+        perLevel![type].push(e);
+      });
     }
-  });
+    return perLevel;
+  };
 
   const group = new THREE.Group();
   group.name = `Ranza ${name}`;
   const frameG = frame.build('Ranza çerçevesi');
   group.add(frameG);
-  const slats = { paralel: paralel.build('Paralel çıtalar'), dik: dik.build('Dik çıtalar') };
   group.add(slats.paralel, slats.dik);
   slats.dik.visible = false;
+  let badMask = 0;
 
   return {
     group,
@@ -99,6 +155,19 @@ export function buildRack(name: string, mats: RackMats = { rack: M.rack, wood: M
       slats.paralel.visible = type === 'paralel';
       slats.dik.visible = type === 'dik';
       frameG.userData.info = baseInfo(type);
+    },
+    setBad(mask) {
+      if (mask === badMask) return;
+      badMask = mask;
+      const pl = mask ? ensurePerLevel() : perLevel;
+      for (const type of TYPES) {
+        full[type].visible = !mask;
+        pl?.[type].forEach((e, j) => {
+          const b = !!mask && ((mask >> j) & 1) === 1;
+          e.ok.visible = !!mask && !b;
+          e.bad.visible = b;
+        });
+      }
     },
   };
 }

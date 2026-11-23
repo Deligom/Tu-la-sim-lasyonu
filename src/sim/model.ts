@@ -98,7 +98,49 @@ export interface Rack {
   timer: number;
   bricks: Brick[];
   reject: boolean;
+  /** 3D eki: yamuk katlar (bit k = alttan k. kat). Lazer katı ölçünce atlanır; ranza reddedilmez. */
+  bad: number;
+  /** 3D eki: dolu katlar (bit k = alttan k. kat) */
+  filled: number;
 }
+
+/** Çizim notu (mantığı etkilemez): istasyondan çıkan ranza */
+export interface RackNote {
+  /** Dolu katlar, bit k = alttan k. kat (0: boş) */
+  filled: number;
+  /** Yamuk katlar */
+  bad: number;
+  /** 2D'nin komple red kuralıyla boş çıkan ranza (zeminde kalır) */
+  reject: boolean;
+}
+
+const nextRng = (r: number) => (r * 16807) % 2147483647;
+
+/** 3D eki: yeni ranzanın yamuk katları. Oran 0 ise hiç çekiliş yapılmaz (2D ile aynı rastgele sıra). */
+export function drawBadLevels(rng: number, P: Readonly<Params>): { rng: number; bad: number } {
+  let bad = 0;
+  if (P.badLevel > 0)
+    for (let k = 0; k < 5; k++) {
+      rng = nextRng(rng);
+      if (rng / 2147483647 < P.badLevel / 100) bad |= 1 << k;
+    }
+  return { rng, bad };
+}
+
+/** Ranza değişimindeki çekiliş: önce 2D'nin komple red kuralı, sonra (3D) yamuk katlar. */
+export function drawRack(rng: number, P: Readonly<Params>): { rng: number; reject: boolean; bad: number } {
+  rng = nextRng(rng);
+  const reject = rng / 2147483647 < P.badRack / 100;
+  const b = drawBadLevels(rng, P);
+  return { rng: b.rng, reject, bad: b.bad };
+}
+
+/** Kaç bit açık */
+export const bitCount = (m: number): number => {
+  let n = 0;
+  for (; m; m &= m - 1) n++;
+  return n;
+};
 
 export interface Station {
   groups: LevelGroup[];
@@ -113,8 +155,10 @@ export interface Station {
   rackWait: number;
   loadBusy: number;
   loaded: number;
-  /** Not (mantığı etkilemez, çizim için): çıkış tamponundaki ranzalar, eskiden yeniye; true = reddedilmiş boş ranza */
-  outQ: boolean[];
+  /** 3D eki: atlanan yamuk kat sayısı */
+  skipped: number;
+  /** Not (mantığı etkilemez, çizim için): çıkış tamponundaki ranzalar, eskiden yeniye */
+  outQ: RackNote[];
 }
 
 export interface Vehicle {
@@ -124,7 +168,7 @@ export interface Vehicle {
   bring: boolean;
   busyT: number;
   /** Not (mantığı etkilemez, çizim için): bu seferde aldığı ranza */
-  cargo: 'full' | 'reject' | null;
+  cargo: RackNote | null;
 }
 
 export interface SimState {
@@ -168,12 +212,23 @@ function mkSide(P: Readonly<Params>): Station {
   return {
     groups: [],
     plate: { phase: 'ready', px: 0, level: null, belt: 0 },
-    rack: { levels: 0, lift: 120, target: 120, phase: 'ok', timer: 0, bricks: [], reject: false },
-    empty: P.inCap, full: 0, incoming: 0, racks: 0, rejected: 0, starve: 0, rackWait: 0, loadBusy: 0, loaded: 0, outQ: [],
+    rack: { levels: 0, lift: 120, target: 120, phase: 'ok', timer: 0, bricks: [], reject: false, bad: 0, filled: 0 },
+    empty: P.inCap, full: 0, incoming: 0, racks: 0, rejected: 0, starve: 0, rackWait: 0, loadBusy: 0, loaded: 0, skipped: 0,
+    outQ: [],
   };
 }
 
 export function createState(P: Readonly<Params>, G: PlanLayout): SimState {
+  const S = createState0(P, G);
+  for (const sd of S.sides) {
+    const d = drawBadLevels(S.rng, P);
+    S.rng = d.rng;
+    sd.rack.bad = d.bad;
+  }
+  return S;
+}
+
+function createState0(P: Readonly<Params>, G: PlanLayout): SimState {
   return {
     t: 0, f: [G.X_CUT, G.X_CUT, G.X_CUT], bricks: [], cuts: 0, produced: 0, scrap: [0, 0, 0], lost: 0, contacts: 0, slips: 0, trips: 0,
     lanes: [0, 1, 2].map(() => ({ meter: true, gate: 'open' as GateState, gt: 0, run: [], trip: false, prepRun: false, relBrick: null, stuckT: 0 })),
@@ -481,6 +536,17 @@ export function step(S: SimState, P: Readonly<Params>, G: PlanLayout, dt: number
       g.bricks.forEach((b) => (b.st = 'plate'));
       pl.phase = 'loaded';
     }
+    // 3D eki: lazer, hizaya gelen katın çıtalarını ölçer; yamuk kat atlanır, ranza sıradaki kata geçer.
+    if (rk.phase === 'ok' && rk.lift === rk.target && rk.levels < 5 && (rk.bad >> rk.levels) & 1 &&
+      pl.phase !== 'insert' && pl.phase !== 'retract') {
+      rk.levels++;
+      sd.skipped++;
+      if (rk.levels < 5) rk.target = (4 - rk.levels) * 30;
+      else {
+        rk.phase = 'needSwap';
+        if (!rk.filled) sd.rejected++;
+      }
+    }
     const rackReady = rk.phase === 'ok' && rk.lift === rk.target && rk.levels < 5;
     if (pl.phase === 'ready') {
       if (rk.levels < 5 && !sd.groups.some((g) => g.back >= G.PL0 - 90)) sd.starve += dt;
@@ -504,6 +570,7 @@ export function step(S: SimState, P: Readonly<Params>, G: PlanLayout, dt: number
         rk.bricks = pl.level!;
         pl.level = null;
         pl.phase = 'ready';
+        rk.filled |= 1 << rk.levels;
         rk.levels++;
         sd.loaded++;
         if (rk.levels < 5) rk.target = (4 - rk.levels) * 30;
@@ -527,15 +594,17 @@ export function step(S: SimState, P: Readonly<Params>, G: PlanLayout, dt: number
       if (rk.timer <= 0) {
         sd.empty--;
         sd.full++;
-        sd.outQ.push(rk.reject);
-        if (!rk.reject) sd.racks++;
+        sd.outQ.push({ filled: rk.filled, bad: rk.bad, reject: rk.reject });
+        if (rk.filled) sd.racks++;
         rk.levels = 0;
         rk.lift = 0;
         rk.target = 120;
-        S.rng = (S.rng * 16807) % 2147483647;
-        const bad = S.rng / 2147483647 < P.badRack / 100;
-        rk.reject = bad;
-        if (bad) {
+        const d = drawRack(S.rng, P);
+        S.rng = d.rng;
+        rk.reject = d.reject;
+        rk.bad = d.bad;
+        rk.filled = 0;
+        if (d.reject) {
           sd.rejected++;
           rk.phase = 'needSwap';
         } else rk.phase = 'ok';
@@ -575,7 +644,7 @@ export function step(S: SimState, P: Readonly<Params>, G: PlanLayout, dt: number
         S.tripsV++;
         if (sd.full > 0) {
           sd.full--;
-          v.cargo = sd.outQ.shift() ? 'reject' : 'full';
+          v.cargo = sd.outQ.shift() ?? null;
         } else v.cargo = null;
         v.bring = sd.empty + sd.incoming < P.inCap;
         if (v.bring) sd.incoming++;

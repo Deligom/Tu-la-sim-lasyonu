@@ -1,5 +1,6 @@
 // Simülasyon parametreleri. Anahtarlar ve varsayılanlar referans-2d-simulasyon.html içindeki `P`
-// nesnesiyle birebir aynı (test/params.test.ts bunu dosyanın kendisinden okuyup karşılaştırır).
+// nesnesiyle birebir aynı (test/geometry.test.ts bunu dosyanın kendisinden okuyup karşılaştırır);
+// yalnızca `ONLY_3D` içindekiler 3D eki (varsayılanda mantığı değiştirmez, 2D sonuçları aynı kalır).
 // Birimler: uzunluk cm, hız cm/s, süre s, oran tuğla/dk.
 
 export type AccMode = 'zpa' | 'single';
@@ -54,8 +55,13 @@ export interface Params {
   scrapDelay: number;
   /** Artık itici hızı */
   pushV: number;
-  /** Çıtası dik (uyumsuz) ranza oranı, % */
+  /** 2D'den kalan: ranzanın komple reddedilme oranı, % (eski "dik çıta" kuralı; arayüzde yok, 2D testleri için) */
   badRack: number;
+  /**
+   * 3D eki (2026-11-23, kullanıcı kararı): yamuk kat oranı, %. Lazer her katın çıtalarını ölçer; yamuk kat
+   * atlanır, ranza reddedilmez (dik çıta artık sorun değil, tarak tuğlayı düz koyuyor).
+   */
+  badLevel: number;
 }
 
 const DEFAULTS: Params = {
@@ -85,7 +91,11 @@ const DEFAULTS: Params = {
   scrapDelay: 1.0,
   pushV: 120,
   badRack: 0,
+  badLevel: 0,
 };
+
+/** 2D'nin `P` nesnesinde olmayan, yalnızca 3D'deki parametreler */
+export const ONLY_3D = ['badLevel'] as const;
 
 export const DEFAULT_PARAMS: Readonly<Params> = Object.freeze(DEFAULTS);
 

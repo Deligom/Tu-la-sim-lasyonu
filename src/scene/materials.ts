@@ -35,6 +35,8 @@ export const M = {
   rack: std(0xa8a59b, 0.72, 0.35),
   wood: std(0xb7a588, 0.95, 0),
   woodDark: std(0x9b8b70, 0.95, 0),
+  /** Yamuk kattaki eğri çıta (lazerin atladığı kat) */
+  woodBad: std(0xc8743c, 0.9, 0),
   plate: std(0xa3acb6, 0.38, 0.75),
   plateBelt: std(0x27303c, 0.85, 0.05),
   hyd: std(0x2e4a6b, 0.5, 0.4),

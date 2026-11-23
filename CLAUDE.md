@@ -93,9 +93,12 @@ referansı o dosyadaki `step()` fonksiyonudur; 3D sürüm aynı sonuçları verm
     - Açık: ped – yaş kil sürtünmesi sahada ölçülecek; ped malzemesi, yastık hortumu, düşey eksen ayrıntısı.
 12. **Ranza:** 120 (boy, Y) × 90 (derinlik, X) × 150 cm (en üst tuğlayla 180), 5 kat, kat arası 30 cm,
     kullanılabilir yükseklik 28 cm. 5 mm köşebent çerçeve, ahşap çıtalar. İç derinlik ~85 cm, kullanılabilir boy
-    110 cm (her yandan 5 cm pay → 100). Çıtalar **plaka giriş yönüne paralel** olmalı; dik çıtalı ranzada tuğla ucu
-    boşluğa düşüp ezilir → lazerle tespit edilip ranza reddedilir. (Tarakta tuğla çıtaya düz konduğu için dik çıtada da
-    ezilmiyor: fizikli simülasyonda 0° eğim, 0,07 mm iz; plakada 9,7°, 2,4 mm. Red kuralı korunacak mı konuşulmalı.)
+    110 cm (her yandan 5 cm pay → 100). **Paralel ve dik çıtalı ranzaların hepsi kullanılır (2026-11-23, kullanıcı
+    kararı):** tarak tuğlayı çıtaya düz koyduğu için dik çıtada da ezilmiyor (fizikli simülasyonda 0° eğim, 0,07 mm iz;
+    önceki plakada 9,7°, 2,4 mm). Ranza reddedilmez; **lazer her katı ayrı ölçer, yalnızca yamuk kat atlanır**
+    (çıtalar arası yükseklik farkı toleransı aşıyorsa; öneri ±4 mm, simde bunun üstü pedde kayma yapıyor). Kaldırıcı
+    o katı geçip sıradakine gelir, ranzanın geri kalanı dolar; bütün katlar yamuksa ranza boş çıkar. 3D'de "Yamuk kat
+    oranı" (Ayarlar, varsayılan %0): %20'de hat yetişiyor, ~%35'e kadar taşma yok, %45'te ranza taşıma yetişmiyor.
 13. **Ranza kaldırıcı:** hidrolik, 20 cm/s. Tarak sabit yükseklikte taşır; ranza sıradaki katı tarağın hizasına getirir.
     **En alt kat önce** (ranza boşken en yukarıda, kaldırma = (4 − dolu kat) × 30 cm).
     **Hat yüksekliği ve çukur (2026-11-18):** hat (pres ağzı, bant yüzeyi) zeminden ~1 m. Hatta seviye farkı yok;
@@ -103,7 +106,8 @@ referansı o dosyadaki `step()` fonksiyonudur; 3D sürüm aynı sonuçları verm
     Ranza değişimi zeminde: dolu ranza zemine kalkar, boş ranza zeminden ilk kata kalkar. Toplam kaldırma
     (55 + 65 = 120 cm) ve süre 2D ile aynı.
 14. **Ranza konumlama:** zincirli konveyör + pnömatik durdurma pimi + iki yandan senkron kendinden merkezli çene.
-    Her kattan önce 2 lazer mesafe sensörü çıta yüksekliğini ve eğimi ölçer (tarak indirmesi buna göre ayarlanır).
+    Her kattan önce 2 lazer mesafe sensörü çıta yüksekliğini ve eğimi ölçer (tarak indirmesi buna göre ayarlanır; yamuk
+    kat atlanır, madde 12).
 15. **Ranza değişimi ve taşıma:** değişim 6 s; istasyon başına 3 boş giriş + 3 dolu çıkış tamponu.
     ~120 ranza/saat (iki istasyon toplam). 3 AGV (kaldırmalı, ranzanın altına girer), 60 s tur.
     **Akış (2026-11-18):** yükleme istasyonu (tabla → tampon → tarak → ranza) akış yönünde kalır. Boş ranzalar pres
@@ -147,7 +151,18 @@ yarı-statik iniş hesabı `src/sim/landing.ts`. Kararların özeti:
 - Makine bunu da dizmeli. 29'luk kenarla 3 × 29 = 87 cm, ranzanın 90 cm'lik derinliğine sığmıyor.
 - Elle diziliş (onaylı): önde ve arkada 29'luk kenarı plaka giriş yönünde (X) 6'şar tuğla, ortada yatay yatırılmış
   3 tuğla (29 Y yönünde) → kat başına 6 + 3 + 6 = 15 tuğla, derinlik ≈ 29 + 13,5 + 29 + aralıklar ≈ 75 cm, en ≈ 96 cm.
-- Akış, kesici, birikme, ön hazırlık ve tabla bu ürün için henüz tasarlanmadı (ROADMAP'e bak).
+  **6+3+6 şart (2026-11-23, kullanıcı):** ön/arka sıra, ranza taşınırken virajda dışarı devrilmesin diye 29'luk kenarı
+  X yönünde duruyor. Hepsi aynı yönde 5 × 3 olmaz; ranzaya ipli kilit de zor.
+- Kalıptan iki 29'luk sütun arası 2 cm (kullanıcı düzeltti, önce 3 demişti). Yığma **sık** üretiliyor (her ay / hafta): bant düzeni iki ürünü de taşımalı.
+  Pres hızı bilinmiyor; aynı çamur debisinden ~157 tuğla/dk (~10,5 kat/dk) tahmini.
+- **Kat kurma kararı (2026-11-23, kullanıcının fikri, "orta yükleyici"):** tarak ön ve arka 6×1 sırayı birlikte koyar
+  (bugünkü 7 diş: dönmüş 6×1 sıra 6 × 13,5 + 5 × 3 = 96 cm, bugünkü 6 sütunla aynı), aradaki yuvaya ortadaki 3 tuğlayı
+  A–B ranzaları arasındaki **orta yükleyici** yandan sokar: iki uzun çene (U profil + yastık) tuğlaları 29 × 19'luk
+  yüzlerinden sıkar. **Her istasyonun kendi orta yükleyicisi** (kullanıcı: yer sorunu yok, A–B arası 3 m'ye kadar
+  açılabilir; ortak tek yükleyici yetişmeyebilir). Orta yuva iki yanda 5 cm (çene için; kullanıcı: 29'luk tuğla ranzadan
+  2–3 cm taşsa bile ağırlık merkezi içeride, sorun değil) → kat derinliği 81,5 cm. 6'lı grup tablada döner tablayla
+  90° döner (katta 2 dönüş); 3'lü grup hattın ortasından düz gidip orta istasyonda tek tek yana aktarılır, dönmez.
+- Akış, kesici, birikme, ön hazırlık ve tabla bu ürün için henüz simüle edilmedi (ROADMAP Aşama 6).
 
 ## 2D simülasyonda doğrulanan sonuçlar (240/dk, varsayılanlar)
 - Blok her 3,0 s; ön hazırlık ~330/dk'ya kadar yetişiyor (~%35–40 pay); ~360/dk'da taşıyor.

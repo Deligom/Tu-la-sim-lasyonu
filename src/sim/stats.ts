@@ -23,6 +23,10 @@ export interface Summary {
   blockT: number | null;
   midScrap: number;
   anomaly: SimState['anomaly'];
+  /** Atlanan yamuk kat (3D eki) */
+  skipped: number;
+  /** Tüm katları yamuk olduğu için boş çıkan ranza (ve 2D'nin komple red kuralı) */
+  rejected: number;
 }
 
 export function summarize(S: SimState): Summary {
@@ -37,5 +41,7 @@ export function summarize(S: SimState): Summary {
     blockT: avg(S.blockTimes),
     midScrap: S.midScrap,
     anomaly: S.anomaly,
+    skipped: S.sides[0].skipped + S.sides[1].skipped,
+    rejected: S.sides[0].rejected + S.sides[1].rejected,
   };
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { load2DGeom } from './ref2d';
-import { DEFAULT_PARAMS, cloneParams } from '../src/sim/params';
+import { DEFAULT_PARAMS, ONLY_3D, cloneParams } from '../src/sim/params';
 import { planLayout, popupBandX, prepRollerX, tableColumnY, type Side } from '../src/sim/geometry';
 
 const SCALARS = [
@@ -11,7 +11,9 @@ const SCALARS = [
 describe('parametreler 2D ile aynı', () => {
   it('varsayılan P birebir aynı', () => {
     const { P } = load2DGeom();
-    expect(cloneParams()).toEqual(P);
+    const p3: Record<string, unknown> = { ...cloneParams() };
+    for (const k of ONLY_3D) delete p3[k];
+    expect(p3).toEqual(P);
   });
 });
 
